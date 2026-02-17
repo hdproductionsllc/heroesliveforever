@@ -1,0 +1,20 @@
+{
+  "name": "heroes-live-forever",
+  "version": "1.0.0",
+  "description": "Production design tool for Heroes Live Forever premium framed tribute pieces",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "puppeteer": "^23.0.0",
+    "sharp": "^0.33.0",
+    "uuid": "^10.0.0"
+  },
+  "author": "HD Productions LLC",
+  "license": "UNLICENSED",
+  "private": true
+}

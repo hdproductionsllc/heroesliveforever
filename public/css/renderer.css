@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════════
+   Heroes Live Forever — Preview Renderer Styles
+   Structural styles only — all theme colors are
+   applied inline by renderer.js
+   ═══════════════════════════════════════════════ */
+
+/* Page title above frame */
+.preview-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: #555;
+  font-weight: 300;
+}
+
+/* Dimension label */
+.dim-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #444;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-family: sans-serif;
+}
+.dim-label::before,
+.dim-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #333;
+}
+
+/* Frame outer wrapper */
+.frame-wrap {
+  position: relative;
+}
+
+/* Side dimension */
+.dim-side {
+  position: absolute;
+  right: -70px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  color: #444;
+  font-size: 10px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  font-family: sans-serif;
+}
+
+/* Mat panel shared */
+.panel {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Image in a panel */
+.panel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Image placeholder */
+.panel .placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #333;
+  font-family: sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Image caption overlay */
+.panel .cap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 10px 7px;
+  font-size: 7px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: sans-serif;
+  text-align: right;
+}
+
+/* Bio panel — main structure set inline, these are content elements */
+.bio-name {
+  text-align: center;
+}
+
+.bio-dates {
+  text-align: center;
+}
+
+.bio-divider {
+  /* Width and gradient set inline */
+}
+
+.bio-text {
+  text-align: center;
+}
+
+.bio-quote {
+  text-align: center;
+}
+
+.bio-attribution {
+  text-align: center;
+  font-family: sans-serif;
+}
+
+/* Aged texture overlay on bio panel */
+.bio-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* Mat cutout bevel effect on bio panel */
+.bio-bevel {
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 1px 4px rgba(0,0,0,0.12),
+    inset 0 -1px 2px rgba(255,240,200,0.06),
+    inset 1px 0 3px rgba(0,0,0,0.06);
+  pointer-events: none;
+}

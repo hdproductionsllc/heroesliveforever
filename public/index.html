@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heroes Live Forever — Design Tool</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/renderer.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Oswald:wght@400;700&family=Bebas+Neue&family=Archivo+Black&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="app-header">
+      <div class="brand">Heroes Live Forever</div>
+      <div class="subtitle">Production Design Tool</div>
+    </header>
+
+    <div id="workspace">
+      <!-- Left Sidebar: Form -->
+      <aside id="sidebar">
+        <form id="hero-form" autocomplete="off">
+          <!-- Hero Info Section -->
+          <section class="form-section">
+            <h3 class="section-title">Hero Information</h3>
+
+            <div class="field">
+              <label for="hero-name">Name</label>
+              <input type="text" id="hero-name" placeholder="J.R.R. Tolkien" required>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="birth-year">Born</label>
+                <input type="text" id="birth-year" placeholder="1892">
+              </div>
+              <div class="field">
+                <label for="death-year">Died</label>
+                <input type="text" id="death-year" placeholder="1973">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="category">Category</label>
+              <select id="category">
+                <option value="military">Military / Veterans</option>
+                <option value="sports">Sports Legends</option>
+                <option value="historical" selected>Historical Figures</option>
+                <option value="national">National Heroes / Heads of State</option>
+                <option value="music">Music / Arts / Culture</option>
+                <option value="personal">Personal Heroes</option>
+              </select>
+            </div>
+
+            <div class="field" id="subcategory-field" style="display:none;">
+              <label for="subcategory">Subcategory</label>
+              <select id="subcategory">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+
+            <div class="field" id="color-db-field" style="display:none;">
+              <label for="color-db">Color Database</label>
+              <select id="color-db">
+                <option value="">— None —</option>
+              </select>
+            </div>
+
+            <div class="field" id="team-field" style="display:none;">
+              <label for="team">Team / Branch / Country</label>
+              <select id="team">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+          </section>
+
+          <!-- Frame & Layout Section -->
+          <section class="form-section">
+            <h3 class="section-title">Frame &amp; Layout</h3>
+
+            <div class="field">
+              <label for="frame-size">Frame Size</label>
+              <select id="frame-size">
+                <option value="8x10">8 &times; 10</option>
+                <option value="12x16">12 &times; 16</option>
+                <option value="16x20">16 &times; 20</option>
+                <option value="20x24">20 &times; 24</option>
+                <option value="24x24" selected>24 &times; 24</option>
+                <option value="24x36">24 &times; 36</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="panel-layout">Panel Layout</label>
+              <select id="panel-layout">
+                <option value="3-panel">3-Panel (Standard)</option>
+                <option value="4-panel">4-Panel</option>
+              </select>
+            </div>
+          </section>
+
+          <!-- Images Section -->
+          <section class="form-section">
+            <h3 class="section-title">Images</h3>
+
+            <div class="image-upload" id="upload-hero">
+              <label>Hero Image</label>
+              <div class="drop-zone" data-panel="hero">
+                <span class="drop-text">Drop image or click to upload</span>
+                <input type="file" accept="image/*" class="file-input" data-panel="hero">
+              </div>
+              <div class="image-meta" data-panel="hero"></div>
+            </div>
+
+            <div class="field">
+              <label for="hero-caption">Hero Caption</label>
+              <input type="text" id="hero-caption" placeholder="Gustave Dor&eacute; &middot; Idylls of the King &middot; 1867">
+            </div>
+
+            <div class="image-upload" id="upload-secondary">
+              <label>Secondary Image</label>
+              <div class="drop-zone" data-panel="secondary">
+                <span class="drop-text">Drop image or click to upload</span>
+                <input type="file" accept="image/*" class="file-input" data-panel="secondary">
+              </div>
+              <div class="image-meta" data-panel="secondary"></div>
+            </div>
+
+            <div class="field">
+              <label for="secondary-caption">Secondary Caption</label>
+              <input type="text" id="secondary-caption" placeholder="Lancashire Fusiliers &middot; 1916">
+            </div>
+
+            <div id="tertiary-section" style="display:none;">
+              <div class="image-upload" id="upload-tertiary">
+                <label>Tertiary Image</label>
+                <div class="drop-zone" data-panel="tertiary">
+                  <span class="drop-text">Drop image or click to upload</span>
+                  <input type="file" accept="image/*" class="file-input" data-panel="tertiary">
+                </div>
+                <div class="image-meta" data-panel="tertiary"></div>
+              </div>
+
+              <div class="field">
+                <label for="tertiary-caption">Tertiary Caption</label>
+                <input type="text" id="tertiary-caption" placeholder="">
+              </div>
+            </div>
+          </section>
+
+          <!-- Bio Section -->
+          <section class="form-section">
+            <h3 class="section-title">Biography</h3>
+
+            <div class="field">
+              <label for="bio-text">Bio Text <span id="word-count" class="word-count">0 words</span></label>
+              <textarea id="bio-text" rows="6" placeholder="Born in South Africa and orphaned by twelve..."></textarea>
+              <div id="bio-warnings" class="field-warnings"></div>
+            </div>
+
+            <div class="field">
+              <label for="quote">Signature Quote</label>
+              <input type="text" id="quote" placeholder="Not all those who wander are lost.">
+            </div>
+
+            <div class="field">
+              <label for="attribution">Attribution</label>
+              <input type="text" id="attribution" placeholder="Author | Philologist | Professor">
+              <small class="field-hint">Separate roles with | or commas</small>
+            </div>
+          </section>
+
+          <!-- Export Section -->
+          <section class="form-section">
+            <h3 class="section-title">Export</h3>
+            <div class="export-buttons">
+              <button type="button" id="btn-export-jsx" class="btn btn-export">
+                <span class="btn-icon">ID</span> InDesign .jsx
+              </button>
+              <button type="button" id="btn-export-pdf" class="btn btn-export">
+                <span class="btn-icon">PDF</span> Bio Panel PDF
+              </button>
+              <button type="button" id="btn-export-html" class="btn btn-export">
+                <span class="btn-icon">&#60;/&#62;</span> HTML Preview
+              </button>
+            </div>
+            <div id="export-status" class="export-status"></div>
+          </section>
+        </form>
+      </aside>
+
+      <!-- Right Area: Live Preview -->
+      <main id="preview-area">
+        <div id="preview-container"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/themeClient.js"></script>
+  <script src="/js/renderer.js"></script>
+  <script src="/js/imageUpload.js"></script>
+  <script src="/js/form.js"></script>
+  <script src="/js/exports.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

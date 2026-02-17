@@ -1,0 +1,11 @@
+{
+  "US Army": { "primary": "#4B5320", "secondary": "#000000", "tertiary": "#FFC72C" },
+  "US Navy": { "primary": "#003B6F", "secondary": "#FFFFFF", "tertiary": "#C8AA14" },
+  "US Marine Corps": { "primary": "#CC0000", "secondary": "#000000", "tertiary": "#C8AA14" },
+  "US Air Force": { "primary": "#00308F", "secondary": "#A5A5A5", "tertiary": "#FFFFFF" },
+  "US Coast Guard": { "primary": "#003366", "secondary": "#FF6600", "tertiary": "#FFFFFF" },
+  "US Space Force": { "primary": "#000C1D", "secondary": "#A5A5A5", "tertiary": "#FFFFFF" },
+  "British Army": { "primary": "#8B0000", "secondary": "#000000", "tertiary": "#C8AA14" },
+  "Royal Navy": { "primary": "#003366", "secondary": "#FFFFFF", "tertiary": "#C8AA14" },
+  "Royal Air Force": { "primary": "#5B7FA3", "secondary": "#8B0000", "tertiary": "#FFFFFF" }
+}
