@@ -11,6 +11,9 @@ window.Renderer = (function() {
   let currentTheme = null;
   let currentLayout = null;
   let currentFrameSize = null;
+  let postRenderCallbacks = [];
+  let gridAreaMap = {}; // Maps panel ID to grid area name (for drag-swap)
+  let customRatios = {}; // User-adjusted panel ratios keyed by layout ID
 
   // Frame size configs (same as server)
   const frameSizes = {
@@ -22,18 +25,56 @@ window.Renderer = (function() {
     '24x36': { w: 24, h: 36, pw: 500 }
   };
 
-  // Layout grid configs
+  // Layout grid configs — must match server-side layouts.js
   const layoutGrids = {
+    // 3-panel variants
     '3-panel': {
       columns: '1.15fr 1fr',
       rows: '1fr 1fr',
       areas: '"hero secondary" "hero bio"',
       panels: ['hero', 'secondary', 'bio']
     },
+    '3-panel-right': {
+      columns: '1fr 1.15fr',
+      rows: '1fr 1fr',
+      areas: '"bio hero" "secondary hero"',
+      panels: ['hero', 'secondary', 'bio']
+    },
+    '3-panel-top': {
+      columns: '1fr 1fr',
+      rows: '1.3fr 1fr',
+      areas: '"hero hero" "secondary bio"',
+      panels: ['hero', 'secondary', 'bio']
+    },
+    '3-panel-bottom': {
+      columns: '1fr 1fr',
+      rows: '1fr 1.3fr',
+      areas: '"secondary bio" "hero hero"',
+      panels: ['hero', 'secondary', 'bio']
+    },
+    '3-panel-center': {
+      columns: '1fr 1.4fr 1fr',
+      rows: '1fr',
+      areas: '"secondary hero bio"',
+      panels: ['hero', 'secondary', 'bio']
+    },
+    // 4-panel variants
     '4-panel': {
       columns: '1.15fr 1fr',
       rows: '1fr 1fr 1fr',
       areas: '"hero secondary" "hero tertiary" "hero bio"',
+      panels: ['hero', 'secondary', 'tertiary', 'bio']
+    },
+    '4-panel-right': {
+      columns: '1fr 1.15fr',
+      rows: '1fr 1fr 1fr',
+      areas: '"bio hero" "secondary hero" "tertiary hero"',
+      panels: ['hero', 'secondary', 'tertiary', 'bio']
+    },
+    '4-panel-top': {
+      columns: '1fr 1fr 1fr',
+      rows: '1.5fr 1fr',
+      areas: '"hero hero hero" "secondary tertiary bio"',
       panels: ['hero', 'secondary', 'tertiary', 'bio']
     },
     '4-panel-alt': {
@@ -43,6 +84,10 @@ window.Renderer = (function() {
       panels: ['hero', 'secondary', 'tertiary', 'bio']
     }
   };
+
+  function parseFrValues(str) {
+    return str.split(/\s+/).map(s => parseFloat(s));
+  }
 
   function init(containerEl) {
     container = containerEl;
@@ -55,6 +100,14 @@ window.Renderer = (function() {
    */
   function render(data) {
     const { theme, heroData, frameSize, layout, images } = data;
+    // Reset panel position map when layout or frame size changes
+    if (layout !== currentLayout || frameSize !== currentFrameSize) {
+      gridAreaMap = {};
+      if (layout !== currentLayout) {
+        delete customRatios[layout]; // Fresh start for new layout
+      }
+    }
+
     currentTheme = theme;
     currentLayout = layout;
     currentFrameSize = frameSize;
@@ -106,16 +159,20 @@ window.Renderer = (function() {
 
     // Mat (inner grid)
     const grid = layoutGrids[layout];
-    const mat = el('div', {}, null, {
+    const custom = customRatios[layout];
+    const colValues = (custom && custom.columns) || parseFrValues(grid.columns);
+    const rowValues = (custom && custom.rows) || parseFrValues(grid.rows);
+    const mat = el('div', { class: 'mat' }, null, {
       width: '100%',
       height: '100%',
       border: `1px solid ${theme.mat.border}`,
       display: 'grid',
-      gridTemplateColumns: grid.columns,
-      gridTemplateRows: grid.rows,
+      gridTemplateColumns: colValues.map(v => v + 'fr').join(' '),
+      gridTemplateRows: rowValues.map(v => v + 'fr').join(' '),
       gridTemplateAreas: grid.areas,
       gap: panelGap + 'px',
-      padding: panelGap + 'px'
+      padding: panelGap + 'px',
+      position: 'relative'
     });
 
     // Build each panel
@@ -135,14 +192,19 @@ window.Renderer = (function() {
     frameWrap.appendChild(dimSide);
 
     container.appendChild(frameWrap);
+
+    // Fire post-render callbacks (e.g. to reattach drag-drop listeners)
+    for (const cb of postRenderCallbacks) {
+      cb(container);
+    }
   }
 
   /**
    * Build an image panel.
    */
   function buildImagePanel(panelId, theme, images, heroData, scale) {
-    const panel = el('div', { class: 'panel' }, null, {
-      gridArea: panelId,
+    const panel = el('div', { class: 'panel', 'data-panel': panelId }, null, {
+      gridArea: gridAreaMap[panelId] || panelId,
       border: `1px solid ${theme.mat.panelBorder}`,
       overflow: 'hidden',
       position: 'relative',
@@ -196,8 +258,17 @@ window.Renderer = (function() {
     const typo = theme.typography;
     const sizes = typo.sizes;
 
-    const panel = el('div', { class: 'panel' }, null, {
-      gridArea: panelId,
+    // Dynamic content scaling — adjust font sizes so bio text fills the panel
+    // with balanced margins regardless of word count.
+    // Reference: ~110 words at 7.5px fills a 24x24 3-panel bio panel well.
+    const wordCount = (heroData.bio || '').split(/\s+/).filter(w => w).length;
+    const idealWords = 110;
+    const contentScale = wordCount > 0
+      ? Math.max(0.82, Math.min(1.35, Math.sqrt(idealWords / wordCount)))
+      : 1;
+
+    const panel = el('div', { class: 'panel', 'data-panel': panelId }, null, {
+      gridArea: gridAreaMap[panelId] || panelId,
       border: `1px solid ${theme.mat.panelBorder}`,
       overflow: 'hidden',
       position: 'relative',
@@ -230,7 +301,7 @@ window.Renderer = (function() {
         fontSize: Math.round(sizes.dates.fontSize * scale) + 'px',
         letterSpacing: Math.round(sizes.dates.letterSpacing * scale) + 'px',
         color: bio.datesColor,
-        marginBottom: Math.round(5 * scale) + 'px',
+        marginBottom: Math.round(5 * scale * contentScale) + 'px',
         fontWeight: 300
       });
       panel.appendChild(datesEl);
@@ -241,20 +312,24 @@ window.Renderer = (function() {
       width: Math.round(36 * scale) + 'px',
       height: '1px',
       background: bio.divider,
-      marginBottom: Math.round(6 * scale) + 'px'
+      marginBottom: Math.round(6 * scale * contentScale) + 'px'
     });
     panel.appendChild(divider);
 
-    // Bio text
+    // Bio text — font size scales with content length for balanced margins
     if (heroData.bio) {
+      const bioFontSize = sizes.bioText.fontSize * scale * contentScale;
+      const bioLineHeight = sizes.bioText.lineHeight + (contentScale > 1.1 ? 0.1 : 0);
+      const bioMaxWidth = Math.round(sizes.bioText.maxWidth * scale * Math.min(contentScale, 1.15));
+
       const text = el('div', { class: 'bio-text' }, heroData.bio, {
         fontFamily: typo.body.family,
-        fontSize: (sizes.bioText.fontSize * scale).toFixed(1) + 'px',
-        lineHeight: sizes.bioText.lineHeight,
+        fontSize: bioFontSize.toFixed(1) + 'px',
+        lineHeight: bioLineHeight,
         color: bio.textColor,
-        maxWidth: Math.round(sizes.bioText.maxWidth * scale) + 'px',
+        maxWidth: bioMaxWidth + 'px',
         textAlign: 'center',
-        marginBottom: Math.round(7 * scale) + 'px'
+        marginBottom: Math.round(7 * scale * contentScale) + 'px'
       });
       panel.appendChild(text);
     }
@@ -262,15 +337,16 @@ window.Renderer = (function() {
     // Quote
     if (heroData.quote) {
       const quoteText = `\u201C${heroData.quote.replace(/^["'\u201C\u201D]+|["'\u201C\u201D]+$/g, '')}\u201D`;
+      const quoteFontSize = sizes.quote.fontSize * scale * Math.min(contentScale, 1.15);
       const quote = el('div', { class: 'bio-quote' }, quoteText, {
         fontFamily: typo.quote.family,
-        fontSize: Math.round(sizes.quote.fontSize * scale) + 'px',
+        fontSize: Math.round(quoteFontSize) + 'px',
         lineHeight: sizes.quote.lineHeight,
         color: bio.quoteColor,
         fontStyle: typo.quote.style || 'italic',
         fontWeight: typo.quote.weight,
         maxWidth: Math.round(sizes.quote.maxWidth * scale) + 'px',
-        marginBottom: Math.round(3 * scale) + 'px'
+        marginBottom: Math.round(3 * scale * contentScale) + 'px'
       });
       panel.appendChild(quote);
     }
@@ -339,6 +415,22 @@ window.Renderer = (function() {
   }
 
   /**
+   * Swap two panels' grid positions. Updates the map and DOM directly.
+   */
+  function swapPanels(panelA, panelB) {
+    const areaA = gridAreaMap[panelA] || panelA;
+    const areaB = gridAreaMap[panelB] || panelB;
+    gridAreaMap[panelA] = areaB;
+    gridAreaMap[panelB] = areaA;
+
+    if (!container) return;
+    const elA = container.querySelector(`[data-panel="${panelA}"]`);
+    const elB = container.querySelector(`[data-panel="${panelB}"]`);
+    if (elA) elA.style.gridArea = areaB;
+    if (elB) elB.style.gridArea = areaA;
+  }
+
+  /**
    * Get the current preview HTML for export.
    */
   function getPreviewHtml() {
@@ -356,10 +448,51 @@ window.Renderer = (function() {
     return grid && grid.panels.includes('tertiary');
   }
 
+  /**
+   * Register a callback to run after every render.
+   */
+  function onPostRender(callback) {
+    postRenderCallbacks.push(callback);
+  }
+
+  /**
+   * Get current fr values for the active layout (custom or default).
+   */
+  function getCurrentFrValues() {
+    const grid = layoutGrids[currentLayout];
+    if (!grid) return null;
+    const custom = customRatios[currentLayout];
+    return {
+      columns: (custom && custom.columns) || parseFrValues(grid.columns),
+      rows: (custom && custom.rows) || parseFrValues(grid.rows)
+    };
+  }
+
+  /**
+   * Store user-adjusted ratios for an axis of the current layout.
+   */
+  function setCustomRatios(axisKey, values) {
+    if (!currentLayout) return;
+    if (!customRatios[currentLayout]) customRatios[currentLayout] = {};
+    customRatios[currentLayout][axisKey] = values;
+  }
+
+  /**
+   * Clear custom ratios for the current layout, reverting to defaults.
+   */
+  function resetCustomRatios() {
+    if (currentLayout) delete customRatios[currentLayout];
+  }
+
   return {
     init,
     render,
     getPreviewHtml,
-    needsTertiaryImage
+    needsTertiaryImage,
+    onPostRender,
+    swapPanels,
+    getCurrentFrValues,
+    setCustomRatios,
+    resetCustomRatios
   };
 })();

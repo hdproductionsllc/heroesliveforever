@@ -98,10 +98,31 @@ function generateJsx(heroData) {
   jsx += '  doc.viewPreferences.horizontalMeasurementUnits = MeasurementUnits.INCHES;\n';
   jsx += '  doc.viewPreferences.verticalMeasurementUnits = MeasurementUnits.INCHES;\n\n';
 
+  // Safe font helper — tries requested font, falls back gracefully
+  jsx += '  // Safe font loader\n';
+  jsx += '  function safeFont(name, fallback) {\n';
+  jsx += '    try {\n';
+  jsx += '      var f = app.fonts.itemByName(name);\n';
+  jsx += '      if (f.isValid) return f;\n';
+  jsx += '    } catch(e) {}\n';
+  jsx += '    if (fallback) {\n';
+  jsx += '      try {\n';
+  jsx += '        var fb = app.fonts.itemByName(fallback);\n';
+  jsx += '        if (fb.isValid) return fb;\n';
+  jsx += '      } catch(e) {}\n';
+  jsx += '    }\n';
+  jsx += '    try {\n';
+  jsx += '      var tr = app.fonts.itemByName("Times New Roman");\n';
+  jsx += '      if (tr.isValid) return tr;\n';
+  jsx += '    } catch(e) {}\n';
+  jsx += '    return app.fonts[0];\n';
+  jsx += '  }\n\n';
+
   // Color swatches
   jsx += '  // Color swatches\n';
   jsx += '  function addSwatch(name, r, g, b) {\n';
-  jsx += '    try { return doc.colors.itemByName(name); } catch(e) {}\n';
+  jsx += '    var existing = doc.colors.itemByName(name);\n';
+  jsx += '    if (existing.isValid) return existing;\n';
   jsx += '    var c = doc.colors.add();\n';
   jsx += '    c.name = name;\n';
   jsx += '    c.model = ColorModel.PROCESS;\n';
@@ -145,11 +166,12 @@ function generateJsx(heroData) {
       jsx += '  ' + panel.id + 'Frame.fillColor = "Paper";\n';
       jsx += '  ' + panel.id + 'Frame.strokeWeight = 0;\n';
 
-      // Place image if path provided
+      // Place image if absolute path provided
       const imageKey = panel.id === 'secondary' ? 'secondary' : panel.id === 'tertiary' ? 'tertiary' : 'hero';
-      if (heroData.images && heroData.images[imageKey] && heroData.images[imageKey].path) {
+      const imgRef = heroData.images && heroData.images[imageKey];
+      if (imgRef && imgRef.absolutePath) {
         jsx += '  try {\n';
-        jsx += '    var ' + panel.id + 'Img = ' + panel.id + 'Frame.place(new File("' + escStr(heroData.images[imageKey].path) + '"));\n';
+        jsx += '    var ' + panel.id + 'Img = ' + panel.id + 'Frame.place(new File("' + escStr(imgRef.absolutePath) + '"));\n';
         jsx += '    ' + panel.id + 'Frame.fit(FitOptions.FILL_PROPORTIONALLY);\n';
         jsx += '    ' + panel.id + 'Frame.fit(FitOptions.CENTER_CONTENT);\n';
         jsx += '  } catch(e) { /* image not found */ }\n';
@@ -182,7 +204,7 @@ function generateJsx(heroData) {
       // Name
       jsx += '  story.insertionPoints[-1].contents = "' + escStr(heroData.name || 'HERO NAME').toUpperCase() + '\\n";\n';
       jsx += '  var nameRange = story.paragraphs[-1];\n';
-      jsx += '  nameRange.appliedFont = app.fonts.itemByName("' + escStr(displayFont) + '");\n';
+      jsx += '  nameRange.appliedFont = safeFont("' + escStr(displayFont) + '", "Cormorant Garamond");\n';
       jsx += '  nameRange.pointSize = 18;\n';
       jsx += '  nameRange.tracking = 200;\n';
       jsx += '  nameRange.fillColor = bioNameColor;\n';
@@ -193,7 +215,7 @@ function generateJsx(heroData) {
       if (heroData.dates) {
         jsx += '  story.insertionPoints[-1].contents = "' + escStr(heroData.dates) + '\\n";\n';
         jsx += '  var datesRange = story.paragraphs[-1];\n';
-        jsx += '  datesRange.appliedFont = app.fonts.itemByName("' + escStr(bodyFont) + '");\n';
+        jsx += '  datesRange.appliedFont = safeFont("' + escStr(bodyFont) + '", "EB Garamond");\n';
         jsx += '  datesRange.pointSize = 9;\n';
         jsx += '  datesRange.tracking = 200;\n';
         jsx += '  datesRange.fillColor = bioDatesColor;\n';
@@ -205,7 +227,7 @@ function generateJsx(heroData) {
       if (heroData.bio) {
         jsx += '  story.insertionPoints[-1].contents = "' + escStr(heroData.bio) + '\\n";\n';
         jsx += '  var bioRange = story.paragraphs[-1];\n';
-        jsx += '  bioRange.appliedFont = app.fonts.itemByName("' + escStr(bodyFont) + '");\n';
+        jsx += '  bioRange.appliedFont = safeFont("' + escStr(bodyFont) + '", "EB Garamond");\n';
         jsx += '  bioRange.pointSize = 8;\n';
         jsx += '  bioRange.leading = 12;\n';
         jsx += '  bioRange.fillColor = bioTextColor;\n';
@@ -217,7 +239,7 @@ function generateJsx(heroData) {
       if (heroData.quote) {
         jsx += '  story.insertionPoints[-1].contents = "\\u201C' + escStr(heroData.quote) + '\\u201D\\n";\n';
         jsx += '  var quoteRange = story.paragraphs[-1];\n';
-        jsx += '  quoteRange.appliedFont = app.fonts.itemByName("' + escStr(quoteFont) + '");\n';
+        jsx += '  quoteRange.appliedFont = safeFont("' + escStr(quoteFont) + '", "Cormorant Garamond");\n';
         jsx += '  quoteRange.fontStyle = "Italic";\n';
         jsx += '  quoteRange.pointSize = 10;\n';
         jsx += '  quoteRange.fillColor = bioQuoteColor;\n';
@@ -229,7 +251,7 @@ function generateJsx(heroData) {
       if (heroData.attribution) {
         jsx += '  story.insertionPoints[-1].contents = "' + escStr(heroData.attribution).toUpperCase() + '";\n';
         jsx += '  var attrRange = story.paragraphs[-1];\n';
-        jsx += '  attrRange.appliedFont = app.fonts.itemByName("Helvetica");\n';
+        jsx += '  attrRange.appliedFont = safeFont("Helvetica", "Arial");\n';
         jsx += '  attrRange.pointSize = 6.5;\n';
         jsx += '  attrRange.tracking = 200;\n';
         jsx += '  attrRange.fillColor = bioAttrColor;\n';

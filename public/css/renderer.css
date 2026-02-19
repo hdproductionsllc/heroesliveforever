@@ -63,6 +63,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Grab cursor for draggable image panels */
+.panel[data-panel] {
+  cursor: grab;
+}
+.panel[data-panel]:active {
+  cursor: grabbing;
 }
 
 /* Image placeholder */
@@ -136,4 +146,48 @@
     inset 0 -1px 2px rgba(255,240,200,0.06),
     inset 1px 0 3px rgba(0,0,0,0.06);
   pointer-events: none;
+}
+
+/* ─── Draggable Panel Dividers ─── */
+
+.divider-handle {
+  position: absolute;
+  z-index: 10;
+  background: transparent;
+}
+
+.divider-handle.col { cursor: col-resize; }
+.divider-handle.row { cursor: row-resize; }
+
+/* Subtle gold line on hover */
+.divider-handle::after {
+  content: '';
+  position: absolute;
+  background: rgba(200, 160, 80, 0);
+  transition: background 0.15s;
+  border-radius: 1px;
+}
+
+.divider-handle.col::after {
+  top: 10%;
+  bottom: 10%;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.divider-handle.row::after {
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.divider-handle:hover::after {
+  background: rgba(200, 160, 80, 0.6);
+}
+
+.divider-handle.dragging::after {
+  background: rgba(200, 160, 80, 0.8);
 }

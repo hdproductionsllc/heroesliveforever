@@ -10,6 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const { generateJsx } = require('../services/jsxGenerator');
 const { generateBioPdf } = require('../services/bioPdfGenerator');
+const { generateDesignPdf } = require('../services/designPdfGenerator');
 const { exportHtml } = require('../services/htmlExporter');
 const { calculateLayout } = require('../services/layoutEngine');
 
@@ -17,13 +18,26 @@ const { calculateLayout } = require('../services/layoutEngine');
 router.post('/jsx', (req, res) => {
   try {
     const heroData = req.body;
+
+    // Convert server paths to absolute filesystem paths for ExtendScript
+    if (heroData.images) {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      for (const [key, img] of Object.entries(heroData.images)) {
+        if (img && img.serverPath) {
+          const filename = path.basename(img.serverPath);
+          img.absolutePath = path.resolve(uploadsDir, filename).replace(/\\/g, '/');
+        }
+      }
+    }
+
     const jsx = generateJsx(heroData);
 
     const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const filename = `${safeName}_${heroData.frameSize}_${Date.now()}.jsx`;
     const outputPath = path.join(__dirname, '..', '..', 'output', 'jsx', filename);
 
-    fs.writeFileSync(outputPath, jsx, 'utf8');
+    // Prepend UTF-8 BOM for InDesign compatibility
+    fs.writeFileSync(outputPath, '\uFEFF' + jsx, 'utf8');
 
     res.json({
       success: true,
@@ -63,6 +77,43 @@ router.post('/pdf', async (req, res) => {
       filename,
       panelSize: { width: bioPanel.width, height: bioPanel.height },
       path: `/output/pdf/${filename}`,
+      downloadUrl: `/api/exports/download/pdf/${filename}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/exports/design-pdf — generate full design print PDF (mat only, no frame)
+router.post('/design-pdf', async (req, res) => {
+  try {
+    const { heroData, rendererHtml } = req.body;
+
+    if (!rendererHtml) {
+      return res.status(400).json({ error: 'No renderer HTML provided' });
+    }
+
+    // Resolve image server paths to absolute filesystem paths
+    if (heroData.images) {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      for (const [key, img] of Object.entries(heroData.images)) {
+        if (img && img.serverPath) {
+          const filename = path.basename(img.serverPath);
+          img.serverPath = path.resolve(uploadsDir, filename);
+        }
+      }
+    }
+
+    const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const filename = `${safeName}_${heroData.frameSize}_print_${Date.now()}.pdf`;
+    const outputPath = path.join(__dirname, '..', '..', 'output', 'pdf', filename);
+
+    const result = await generateDesignPdf(heroData, rendererHtml, outputPath);
+
+    res.json({
+      success: true,
+      filename,
+      matSize: { width: result.matWidth, height: result.matHeight },
       downloadUrl: `/api/exports/download/pdf/${filename}`
     });
   } catch (err) {

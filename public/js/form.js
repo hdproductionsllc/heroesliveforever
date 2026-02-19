@@ -4,6 +4,11 @@
 
 window.Form = (function() {
   let onChangeCallback = null;
+  let heroWikiTitle = '';
+  let fullBio = '';
+  let isAutoPopulated = false;
+  let _suppressManualFlag = false;
+  let _lookupCompleteCallbacks = [];
 
   // DOM references
   const els = {};
@@ -39,6 +44,9 @@ window.Form = (function() {
     els.tertiarySection = document.getElementById('tertiary-section');
     els.wordCount = document.getElementById('word-count');
     els.bioWarnings = document.getElementById('bio-warnings');
+    els.lookupBtn = document.getElementById('btn-lookup');
+    els.lookupLabel = els.lookupBtn.querySelector('.lookup-label');
+    els.lookupSpinner = els.lookupBtn.querySelector('.lookup-spinner');
   }
 
   function setupListeners() {
@@ -82,10 +90,24 @@ window.Form = (function() {
       notifyChange();
     });
 
-    // Bio text → word count + validation
+    // Bio text → word count + validation + manual edit detection
     els.bio.addEventListener('input', () => {
+      if (!_suppressManualFlag) {
+        isAutoPopulated = false;
+      }
       updateWordCount();
       validateBioText();
+    });
+
+    // Look Up button → fetch from Wikipedia
+    els.lookupBtn.addEventListener('click', handleLookup);
+
+    // Also trigger lookup on Enter key in name field
+    els.name.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLookup();
+      }
     });
   }
 
@@ -172,12 +194,12 @@ window.Form = (function() {
   function updateLayoutOptions() {
     const frameSize = els.frameSize.value;
     const layoutMap = {
-      '8x10': ['3-panel'],
-      '12x16': ['3-panel'],
-      '16x20': ['3-panel', '4-panel'],
-      '20x24': ['3-panel', '4-panel'],
-      '24x24': ['3-panel', '4-panel'],
-      '24x36': ['3-panel', '4-panel', '4-panel-alt']
+      '8x10':  ['3-panel', '3-panel-right'],
+      '12x16': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'],
+      '16x20': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right'],
+      '20x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'],
+      '24x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'],
+      '24x36': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '4-panel-alt']
     };
 
     const layouts = layoutMap[frameSize] || ['3-panel'];
@@ -185,9 +207,15 @@ window.Form = (function() {
     els.panelLayout.innerHTML = '';
 
     const labels = {
-      '3-panel': '3-Panel (Standard)',
-      '4-panel': '4-Panel',
-      '4-panel-alt': '4-Panel Alternate'
+      '3-panel': '3-Panel: Hero Left',
+      '3-panel-right': '3-Panel: Hero Right',
+      '3-panel-top': '3-Panel: Hero Top',
+      '3-panel-bottom': '3-Panel: Hero Bottom',
+      '3-panel-center': '3-Panel: Centered Hero',
+      '4-panel': '4-Panel: Hero Left',
+      '4-panel-right': '4-Panel: Hero Right',
+      '4-panel-top': '4-Panel: Hero Top',
+      '4-panel-alt': '4-Panel: Triptych'
     };
 
     for (const id of layouts) {
@@ -217,8 +245,8 @@ window.Form = (function() {
     els.wordCount.textContent = `${count} words`;
 
     els.wordCount.className = 'word-count';
-    if (count >= 60 && count <= 120) els.wordCount.classList.add('ok');
-    else if (count > 0 && (count < 60 || count > 120)) els.wordCount.classList.add('warn');
+    if (count >= 80 && count <= 140) els.wordCount.classList.add('ok');
+    else if (count > 0 && (count < 80 || count > 140)) els.wordCount.classList.add('warn');
   }
 
   function validateBioText() {
@@ -273,6 +301,144 @@ window.Form = (function() {
     if (onChangeCallback) onChangeCallback();
   }
 
+  /**
+   * Handle the Look Up button click — call the API and populate the form.
+   */
+  async function handleLookup() {
+    const name = els.name.value.trim();
+    if (!name) {
+      showLookupMessage('Enter a name first.', 'error');
+      return;
+    }
+
+    // Show loading state
+    els.lookupBtn.disabled = true;
+    els.lookupLabel.style.display = 'none';
+    els.lookupSpinner.style.display = '';
+    clearLookupMessage();
+
+    try {
+      const res = await fetch('/api/hero/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showLookupMessage(data.error || 'Lookup failed.', 'error');
+        return;
+      }
+
+      populateFromLookup(data);
+      showLookupMessage('Auto-populated from Wikipedia', 'success');
+    } catch (err) {
+      showLookupMessage('Network error — could not reach server.', 'error');
+    } finally {
+      els.lookupBtn.disabled = false;
+      els.lookupLabel.style.display = '';
+      els.lookupSpinner.style.display = 'none';
+    }
+  }
+
+  /**
+   * Populate form fields from lookup data and trigger all cascading updates.
+   */
+  function populateFromLookup(data) {
+    // Track Wikipedia title for gallery lookups
+    if (data.name) heroWikiTitle = data.name;
+
+    // Store full bio source for dynamic retrimming
+    fullBio = data.fullBio || '';
+    isAutoPopulated = true;
+
+    // Set text fields
+    if (data.name) els.name.value = data.name;
+    if (data.birthYear) els.birthYear.value = data.birthYear;
+    if (data.deathYear) els.deathYear.value = data.deathYear;
+    if (data.bio) els.bio.value = data.bio;
+    if (data.attribution) els.attribution.value = data.attribution;
+
+    // Set category and trigger cascading update
+    if (data.category && els.category.querySelector(`option[value="${data.category}"]`)) {
+      els.category.value = data.category;
+      updateCascadingFields();
+    }
+
+    // Update word count and bio validation
+    updateWordCount();
+    validateBioText();
+
+    // Trigger preview render
+    notifyChange();
+
+    // Notify lookup-complete listeners (e.g. retrim reference capture)
+    for (const cb of _lookupCompleteCallbacks) cb();
+
+    // Clear old images, then load new ones into all panels
+    ImageUpload.clearAll();
+    if (data.images) {
+      loadAllPanelImages(data.images);
+    }
+  }
+
+  /**
+   * Download and load images into all available panels.
+   * Downloads happen in parallel for speed.
+   */
+  async function loadAllPanelImages(images) {
+    // Build download tasks: [panelId, url] pairs
+    const tasks = [];
+    if (images.hero) tasks.push(['hero', images.hero]);
+    if (images.secondary) tasks.push(['secondary', images.secondary]);
+    if (images.tertiary) tasks.push(['tertiary', images.tertiary]);
+
+    // Download all in parallel
+    const results = await Promise.allSettled(
+      tasks.map(async ([panelId, url]) => {
+        const res = await fetch('/api/images/download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.filename ? { panelId, data } : null;
+      })
+    );
+
+    // Load each successful download into its panel
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        const { panelId, data } = result.value;
+        ImageUpload.loadFromServer(panelId, data);
+      }
+    }
+  }
+
+  /**
+   * Show a feedback message below the name lookup row.
+   */
+  function showLookupMessage(text, type) {
+    clearLookupMessage();
+    const msg = document.createElement('div');
+    msg.className = type === 'error' ? 'lookup-error' : 'lookup-success';
+    msg.textContent = text;
+    msg.id = 'lookup-message';
+    els.lookupBtn.closest('.field').appendChild(msg);
+
+    // Auto-clear success messages
+    if (type === 'success') {
+      setTimeout(clearLookupMessage, 4000);
+    }
+  }
+
+  function clearLookupMessage() {
+    const existing = document.getElementById('lookup-message');
+    if (existing) existing.remove();
+  }
+
   function debounce(fn, ms) {
     let timer;
     return function(...args) {
@@ -283,6 +449,19 @@ window.Form = (function() {
 
   return {
     init,
-    getData
+    getData,
+    getWikiTitle() { return heroWikiTitle; },
+    getFullBio() { return fullBio; },
+    isAutoPopulatedBio() { return isAutoPopulated; },
+    setBio(text) {
+      _suppressManualFlag = true;
+      els.bio.value = text;
+      _suppressManualFlag = false;
+      updateWordCount();
+      notifyChange();
+    },
+    onLookupComplete(callback) {
+      _lookupCompleteCallbacks.push(callback);
+    }
   };
 })();

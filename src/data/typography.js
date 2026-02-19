@@ -76,8 +76,8 @@ const typography = {
     datesSeparator: '\u2013', // en dash
     dividerWidth: 36,
     bioLineHeight: 1.55,
-    bioMaxWords: 120,
-    bioMinWords: 60,
+    bioMaxWords: 140,
+    bioMinWords: 80,
     quoteChars: ['\u201C', '\u201D'], // curly double quotes
     noEmDashes: true
   }

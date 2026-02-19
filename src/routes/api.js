@@ -8,6 +8,10 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+const fs = require('fs');
+const https = require('https');
+const http = require('http');
+const sharp = require('sharp');
 const themes = require('../data/themes');
 const typography = require('../data/typography');
 const { layouts, frameSizes, printDimensions } = require('../data/layouts');
@@ -15,6 +19,7 @@ const { resolveTheme, getColorDatabases, loadColorDb } = require('../services/th
 const { getLayoutsForSize, calculateLayout } = require('../services/layoutEngine');
 const { checkResolution, getImageDimensions } = require('../services/resolutionChecker');
 const { validateBio } = require('../utils/textUtils');
+const { lookupHero, fetchGallery } = require('../services/heroLookup');
 
 // Multer config for image uploads
 const storage = multer.diskStorage({
@@ -147,6 +152,148 @@ router.post('/images/check-resolution', async (req, res) => {
   try {
     const result = await checkResolution(filePath, parseFloat(placedWidthIn), parseFloat(placedHeightIn));
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/hero/lookup — auto-populate hero data from Wikipedia
+router.post('/hero/lookup', async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  try {
+    const data = await lookupHero(name);
+    res.json(data);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// POST /api/hero/gallery — fetch all viable images from a Wikipedia article
+router.post('/hero/gallery', async (req, res) => {
+  const { title } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+
+  try {
+    const images = await fetchGallery(title.trim().replace(/\s+/g, '_'));
+    res.json({ images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/images/download-url — proxy-download an image from a whitelisted URL
+router.post('/images/download-url', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  // Whitelist domains
+  const allowed = ['upload.wikimedia.org', 'commons.wikimedia.org'];
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid URL' });
+  }
+  if (!allowed.includes(parsed.hostname)) {
+    return res.status(403).json({ error: 'Domain not allowed' });
+  }
+
+  try {
+    // Download the image
+    const imageBuffer = await new Promise((resolve, reject) => {
+      const proto = parsed.protocol === 'https:' ? https : http;
+      const request = (targetUrl, redirectCount) => {
+        if (redirectCount > 5) return reject(new Error('Too many redirects'));
+        proto.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
+          if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+            return request(response.headers.location, redirectCount + 1);
+          }
+          if (response.statusCode !== 200) {
+            return reject(new Error(`Download failed: HTTP ${response.statusCode}`));
+          }
+          const chunks = [];
+          response.on('data', chunk => chunks.push(chunk));
+          response.on('end', () => resolve(Buffer.concat(chunks)));
+          response.on('error', reject);
+        }).on('error', reject);
+      };
+      request(url, 0);
+    });
+
+    // Determine extension from URL or content-type
+    const urlPath = parsed.pathname;
+    let ext = path.extname(urlPath).toLowerCase();
+    if (!ext || !/^\.(jpg|jpeg|png|gif|tiff|tif|webp)$/.test(ext)) ext = '.jpg';
+
+    const filename = uuidv4() + ext;
+    const filePath = path.join(__dirname, '..', '..', 'uploads', filename);
+    fs.writeFileSync(filePath, imageBuffer);
+
+    // Get dimensions
+    const dims = await getImageDimensions(filePath);
+
+    res.json({
+      filename,
+      originalName: path.basename(urlPath),
+      path: `/uploads/${filename}`,
+      size: imageBuffer.length,
+      dimensions: dims
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/images/analyze-crop — entropy-based smart crop position
+router.post('/images/analyze-crop', async (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: 'filename is required' });
+
+  const filePath = path.join(__dirname, '..', '..', 'uploads', path.basename(filename));
+
+  try {
+    const metadata = await sharp(filePath).metadata();
+    const { width, height } = metadata;
+    const isPortrait = height > width * 1.3;
+
+    // Divide image into vertical thirds and compare entropy
+    const thirdHeight = Math.floor(height / 3);
+
+    const [topStats, midStats, botStats] = await Promise.all([
+      sharp(filePath).extract({ left: 0, top: 0, width, height: thirdHeight }).stats(),
+      sharp(filePath).extract({ left: 0, top: thirdHeight, width, height: thirdHeight }).stats(),
+      sharp(filePath).extract({ left: 0, top: thirdHeight * 2, width, height: height - thirdHeight * 2 }).stats()
+    ]);
+
+    // Use entropy as a proxy for detail/interest
+    const topEntropy = topStats.entropy;
+    const midEntropy = midStats.entropy;
+    const botEntropy = botStats.entropy;
+
+    let position;
+    if (isPortrait) {
+      // Portrait images: bias toward top (faces are usually top third)
+      position = 'center 20%';
+    } else if (topEntropy >= midEntropy && topEntropy >= botEntropy) {
+      position = 'center 20%';
+    } else if (botEntropy >= midEntropy && botEntropy >= topEntropy) {
+      position = 'center 70%';
+    } else {
+      position = 'center center';
+    }
+
+    res.json({
+      position,
+      entropy: { top: topEntropy, mid: midEntropy, bot: botEntropy },
+      isPortrait,
+      dimensions: { width, height }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

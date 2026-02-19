@@ -26,7 +26,13 @@
 
             <div class="field">
               <label for="hero-name">Name</label>
-              <input type="text" id="hero-name" placeholder="J.R.R. Tolkien" required>
+              <div class="name-lookup-row">
+                <input type="text" id="hero-name" placeholder="J.R.R. Tolkien" required>
+                <button type="button" id="btn-lookup" class="btn-lookup" title="Auto-populate from Wikipedia">
+                  <span class="lookup-label">Look Up</span>
+                  <span class="lookup-spinner" style="display:none;"></span>
+                </button>
+              </div>
             </div>
 
             <div class="field-row">
@@ -174,11 +180,8 @@
           <section class="form-section">
             <h3 class="section-title">Export</h3>
             <div class="export-buttons">
-              <button type="button" id="btn-export-jsx" class="btn btn-export">
-                <span class="btn-icon">ID</span> InDesign .jsx
-              </button>
               <button type="button" id="btn-export-pdf" class="btn btn-export">
-                <span class="btn-icon">PDF</span> Bio Panel PDF
+                <span class="btn-icon">PDF</span> Export Print PDF
               </button>
               <button type="button" id="btn-export-html" class="btn btn-export">
                 <span class="btn-icon">&#60;/&#62;</span> HTML Preview

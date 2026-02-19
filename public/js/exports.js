@@ -1,5 +1,5 @@
 /**
- * Export Controller — handles InDesign JSX, bio PDF, and HTML export actions.
+ * Export Controller — handles print PDF and HTML export actions.
  */
 
 window.Exports = (function() {
@@ -8,8 +8,7 @@ window.Exports = (function() {
   function init(getHeroData) {
     getHeroDataFn = getHeroData;
 
-    document.getElementById('btn-export-jsx').addEventListener('click', exportJsx);
-    document.getElementById('btn-export-pdf').addEventListener('click', exportPdf);
+    document.getElementById('btn-export-pdf').addEventListener('click', exportDesignPdf);
     document.getElementById('btn-export-html').addEventListener('click', exportHtml);
   }
 
@@ -17,56 +16,31 @@ window.Exports = (function() {
     const el = document.getElementById('export-status');
     el.innerHTML = `<div class="${type}">${message}</div>`;
     if (type === 'success') {
-      setTimeout(() => { el.innerHTML = ''; }, 5000);
+      setTimeout(() => { el.innerHTML = ''; }, 8000);
     }
   }
 
-  async function exportJsx() {
+  async function exportDesignPdf() {
     const heroData = getHeroDataFn();
     if (!heroData.name) {
       showStatus('Enter a hero name first', 'error');
       return;
     }
 
-    showStatus('Generating InDesign script...', 'loading');
+    showStatus('Generating print-ready PDF (this may take a moment)...', 'loading');
     try {
-      const res = await fetch('/api/exports/jsx', {
+      const rendererHtml = Renderer.getPreviewHtml();
+
+      const res = await fetch('/api/exports/design-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(heroData)
+        body: JSON.stringify({ heroData, rendererHtml })
       });
       const data = await res.json();
 
       if (data.success) {
-        showStatus(`Generated: ${data.filename}`, 'success');
-        downloadFile(data.downloadUrl, data.filename);
-      } else {
-        showStatus(`Error: ${data.error}`, 'error');
-      }
-    } catch (err) {
-      showStatus(`Error: ${err.message}`, 'error');
-    }
-  }
-
-  async function exportPdf() {
-    const heroData = getHeroDataFn();
-    if (!heroData.name) {
-      showStatus('Enter a hero name first', 'error');
-      return;
-    }
-
-    showStatus('Generating bio panel PDF (this may take a moment)...', 'loading');
-    try {
-      const res = await fetch('/api/exports/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(heroData)
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        const sizeInfo = `${data.panelSize.width.toFixed(2)}" × ${data.panelSize.height.toFixed(2)}"`;
-        showStatus(`Generated: ${data.filename} (${sizeInfo})`, 'success');
+        const sizeInfo = `${data.matSize.width}" \u00D7 ${data.matSize.height}"`;
+        showStatus(`Generated: ${data.filename} (${sizeInfo} mat)`, 'success');
         downloadFile(data.downloadUrl, data.filename);
       } else {
         showStatus(`Error: ${data.error}`, 'error');
