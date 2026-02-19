@@ -102,8 +102,18 @@ router.get('/frame-sizes', (req, res) => {
 
 // POST /api/layout/calculate — calculate panel positions
 router.post('/layout/calculate', (req, res) => {
+  const { frameSize, layout } = req.body;
+
+  // Validate against allowed values
+  if (!frameSize || !frameSizes[frameSize]) {
+    return res.status(400).json({ error: `Invalid frame size: ${frameSize}` });
+  }
+  if (!layout || !layouts[layout]) {
+    return res.status(400).json({ error: `Invalid layout: ${layout}` });
+  }
+
   try {
-    const result = calculateLayout(req.body.frameSize, req.body.layout);
+    const result = calculateLayout(frameSize, layout);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -205,23 +215,52 @@ router.post('/images/download-url', async (req, res) => {
   }
 
   try {
-    // Download the image
+    // Download the image (with timeout and size limit)
+    const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024; // 50MB
+    const DOWNLOAD_TIMEOUT = 15000; // 15 seconds
+
     const imageBuffer = await new Promise((resolve, reject) => {
       const proto = parsed.protocol === 'https:' ? https : http;
+      const timeout = setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT);
+
       const request = (targetUrl, redirectCount) => {
-        if (redirectCount > 5) return reject(new Error('Too many redirects'));
-        proto.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
+        if (redirectCount > 5) {
+          clearTimeout(timeout);
+          return reject(new Error('Too many redirects'));
+        }
+        const req = proto.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
           if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
             return request(response.headers.location, redirectCount + 1);
           }
           if (response.statusCode !== 200) {
+            clearTimeout(timeout);
             return reject(new Error(`Download failed: HTTP ${response.statusCode}`));
           }
           const chunks = [];
-          response.on('data', chunk => chunks.push(chunk));
-          response.on('end', () => resolve(Buffer.concat(chunks)));
-          response.on('error', reject);
-        }).on('error', reject);
+          let totalSize = 0;
+          response.on('data', chunk => {
+            totalSize += chunk.length;
+            if (totalSize > MAX_DOWNLOAD_SIZE) {
+              response.destroy();
+              clearTimeout(timeout);
+              reject(new Error('Image exceeds 50MB size limit'));
+              return;
+            }
+            chunks.push(chunk);
+          });
+          response.on('end', () => {
+            clearTimeout(timeout);
+            resolve(Buffer.concat(chunks));
+          });
+          response.on('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
+          });
+        });
+        req.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
       };
       request(url, 0);
     });

@@ -137,6 +137,10 @@ window.ImageUpload = (function() {
       }
     } catch (err) {
       console.error('Upload error:', err);
+      const metaEl = document.querySelector(`.image-meta[data-panel="${panelId}"]`);
+      if (metaEl) {
+        metaEl.innerHTML = '<span style="color:#c44;">Upload failed — try again</span>';
+      }
     }
   }
 
@@ -297,6 +301,7 @@ window.ImageUpload = (function() {
       }
     } catch (err) {
       console.error('Crop analysis error:', err);
+      // Non-critical: auto-crop is a convenience feature, image still loads fine
     }
   }
 

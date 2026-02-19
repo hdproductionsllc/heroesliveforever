@@ -259,7 +259,12 @@
       });
     } catch (err) {
       console.error('Theme resolve error:', err);
-      theme = await ThemeClient.getTheme(data.category);
+      try {
+        theme = await ThemeClient.getTheme(data.category);
+      } catch (fallbackErr) {
+        console.error('Theme fallback also failed:', fallbackErr);
+        return; // Can't render without a theme
+      }
     }
 
     // Render preview

@@ -9,6 +9,7 @@ window.Form = (function() {
   let isAutoPopulated = false;
   let _suppressManualFlag = false;
   let _lookupCompleteCallbacks = [];
+  let _lookupAbortController = null;
 
   // DOM references
   const els = {};
@@ -317,11 +318,16 @@ window.Form = (function() {
     els.lookupSpinner.style.display = '';
     clearLookupMessage();
 
+    // Cancel any in-flight lookup
+    if (_lookupAbortController) _lookupAbortController.abort();
+    _lookupAbortController = new AbortController();
+
     try {
       const res = await fetch('/api/hero/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name }),
+        signal: _lookupAbortController.signal
       });
 
       const data = await res.json();
@@ -334,8 +340,10 @@ window.Form = (function() {
       populateFromLookup(data);
       showLookupMessage('Auto-populated from Wikipedia', 'success');
     } catch (err) {
+      if (err.name === 'AbortError') return; // Cancelled by a newer lookup
       showLookupMessage('Network error — could not reach server.', 'error');
     } finally {
+      _lookupAbortController = null;
       els.lookupBtn.disabled = false;
       els.lookupLabel.style.display = '';
       els.lookupSpinner.style.display = 'none';

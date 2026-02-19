@@ -51,21 +51,24 @@ async function generateBioPdf(heroData, panelDims, outputPath) {
 
   // Launch Puppeteer and generate PDF
   const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
+  try {
+    const page = await browser.newPage();
 
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
-  await page.pdf({
-    path: outputPath,
-    width: `${widthIn}in`,
-    height: `${heightIn}in`,
-    printBackground: true,
-    margin: { top: 0, right: 0, bottom: 0, left: 0 },
-    preferCSSPageSize: true
-  });
+    await page.pdf({
+      path: outputPath,
+      width: `${widthIn}in`,
+      height: `${heightIn}in`,
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      preferCSSPageSize: true
+    });
 
-  await browser.close();
-  return outputPath;
+    return outputPath;
+  } finally {
+    await browser.close();
+  }
 }
 
 /**

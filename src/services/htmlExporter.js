@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveTheme } = require('./themeEngine');
+const { imageToDataUrl } = require('../utils/imageUtils');
 
 /**
  * Generate a self-contained HTML preview file.
@@ -30,10 +31,7 @@ async function exportHtml(heroData, rendererHtml, outputPath) {
     for (const [key, img] of Object.entries(heroData.images)) {
       if (img && img.serverPath) {
         try {
-          const data = fs.readFileSync(img.serverPath);
-          const ext = path.extname(img.serverPath).slice(1).toLowerCase();
-          const mime = ext === 'jpg' ? 'jpeg' : ext;
-          images[key] = `data:image/${mime};base64,${data.toString('base64')}`;
+          images[key] = imageToDataUrl(img.serverPath);
         } catch (e) {
           // Skip if file not found
         }
