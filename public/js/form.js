@@ -414,26 +414,22 @@ window.Form = (function() {
     if (images.secondary) tasks.push(['secondary', images.secondary]);
     if (images.tertiary) tasks.push(['tertiary', images.tertiary]);
 
-    // Download all in parallel
-    const results = await Promise.allSettled(
-      tasks.map(async ([panelId, url]) => {
+    // Download sequentially with small delays to avoid Wikimedia rate limiting (429)
+    for (const [panelId, url] of tasks) {
+      try {
         const res = await fetch('/api/images/download-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url })
         });
-        if (!res.ok) return null;
+        if (!res.ok) continue;
         const data = await res.json();
-        return data.filename ? { panelId, data } : null;
-      })
-    );
-
-    // Load each successful download into its panel
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        const { panelId, data } = result.value;
-        const license = licenses[panelId] || null;
-        ImageUpload.loadFromServer(panelId, data, license);
+        if (data.filename) {
+          const license = licenses[panelId] || null;
+          ImageUpload.loadFromServer(panelId, data, license);
+        }
+      } catch (e) {
+        console.warn('Failed to load ' + panelId + ' image:', e.message);
       }
     }
   }

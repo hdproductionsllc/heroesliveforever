@@ -219,18 +219,23 @@ router.post('/images/download-url', async (req, res) => {
     const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024; // 50MB
     const DOWNLOAD_TIMEOUT = 15000; // 15 seconds
 
-    const imageBuffer = await new Promise((resolve, reject) => {
-      const proto = parsed.protocol === 'https:' ? https : http;
+    const downloadImage = (targetUrl) => new Promise((resolve, reject) => {
+      const proto = new URL(targetUrl).protocol === 'https:' ? https : http;
       const timeout = setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT);
 
-      const request = (targetUrl, redirectCount) => {
+      const request = (reqUrl, redirectCount) => {
         if (redirectCount > 5) {
           clearTimeout(timeout);
           return reject(new Error('Too many redirects'));
         }
-        const req = proto.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
+        const req = proto.get(reqUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
           if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
             return request(response.headers.location, redirectCount + 1);
+          }
+          if (response.statusCode === 429) {
+            clearTimeout(timeout);
+            response.resume();
+            return reject(new Error('RATE_LIMITED'));
           }
           if (response.statusCode !== 200) {
             clearTimeout(timeout);
@@ -262,8 +267,26 @@ router.post('/images/download-url', async (req, res) => {
           reject(err);
         });
       };
-      request(url, 0);
+      request(targetUrl, 0);
     });
+
+    // Download with retry on rate limiting (Wikimedia 429s)
+    let imageBuffer;
+    let lastErr;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        imageBuffer = await downloadImage(url);
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (err.message === 'RATE_LIMITED' && attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (!imageBuffer) throw lastErr;
 
     // Determine extension from URL or content-type
     const urlPath = parsed.pathname;
