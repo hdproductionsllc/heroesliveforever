@@ -108,8 +108,11 @@ function fetchMediaList(title) {
   const url = `https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`;
   return httpsGet(url).then(data => {
     return (data.items || [])
-      .map(item => item.title)
-      .filter(t => /\.(jpe?g|png)$/i.test(t));
+      .filter(item => /\.(jpe?g|png)$/i.test(item.title))
+      .map(item => ({
+        title: item.title,
+        caption: item.caption && item.caption.text ? item.caption.text.trim() : ''
+      }));
   }).catch(() => []);
 }
 
@@ -117,9 +120,14 @@ function fetchMediaList(title) {
  * Get image info (URL + dimensions) for a batch of Wikipedia file titles.
  * Uses the MediaWiki imageinfo API which accepts multiple titles at once.
  */
-function fetchImageInfo(fileTitles) {
-  if (fileTitles.length === 0) return Promise.resolve([]);
-  const titles = fileTitles.join('|');
+function fetchImageInfo(mediaItems) {
+  if (mediaItems.length === 0) return Promise.resolve([]);
+  // Accept either objects {title, caption} or plain strings
+  const items = mediaItems.map(m => typeof m === 'string' ? { title: m, caption: '' } : m);
+  const titles = items.map(m => m.title).join('|');
+  // Build a caption lookup by normalized title
+  const captionMap = {};
+  for (const m of items) captionMap[m.title] = m.caption || '';
   const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url|size|mime&format=json`;
   return httpsGet(url).then(data => {
     const pages = data.query && data.query.pages;
@@ -135,7 +143,8 @@ function fetchImageInfo(fileTitles) {
           height: ii.height,
           pixels: ii.width * ii.height,
           aspectRatio: ii.width / ii.height,
-          mime: ii.mime
+          mime: ii.mime,
+          caption: captionMap[p.title] || ''
         };
       });
   }).catch(() => []);
@@ -155,10 +164,29 @@ async function fetchHeroImages(title, mainImageUrl) {
   return fetchHeroImagesFromTitles(fileTitles, mainImageUrl);
 }
 
-async function fetchHeroImagesFromTitles(fileTitles, mainImageUrl) {
-  if (fileTitles.length === 0) return { portrait: mainImageUrl, hero: null, extra: null };
+/**
+ * Generate a readable caption from a Wikipedia image filename.
+ * e.g. "Gustave_Doré_-_Idylls_of_the_King_-_1867.jpg" → "Gustave Doré · Idylls of the King · 1867"
+ */
+function captionFromFilename(filename) {
+  if (!filename) return '';
+  let name = filename
+    .replace(/\.[^.]+$/, '')        // strip extension
+    .replace(/_/g, ' ')             // underscores → spaces
+    .replace(/ - /g, ' · ')         // dashes → mid-dots
+    .replace(/\s{2,}/g, ' ')        // collapse whitespace
+    .trim();
+  // Strip leading "File:" if present
+  name = name.replace(/^File:\s*/i, '');
+  // Truncate overly long captions
+  if (name.length > 80) name = name.substring(0, 77) + '...';
+  return name;
+}
 
-  const images = await fetchImageInfo(fileTitles);
+async function fetchHeroImagesFromTitles(mediaItems, mainImageUrl) {
+  if (mediaItems.length === 0) return { portrait: mainImageUrl, hero: null, extra: null, captions: {} };
+
+  const images = await fetchImageInfo(mediaItems);
 
   // Filter: must be JPEG/PNG, at least 300px on shortest side
   const usable = images.filter(img =>
@@ -168,20 +196,35 @@ async function fetchHeroImagesFromTitles(fileTitles, mainImageUrl) {
 
   // Separate: the main article image vs everything else
   const mainFilename = mainImageUrl ? decodeURIComponent(mainImageUrl.split('/').pop()) : '';
+  const mainImage = usable.find(img => img.filename === mainFilename);
   const others = usable.filter(img => img.filename !== mainFilename);
 
   // Sort candidates by total pixels (largest = most dramatic)
   others.sort((a, b) => b.pixels - a.pixels);
 
-  // Skip images that are clearly not about the person:
-  // tiny icons, logos, maps, audio waveforms, coats of arms
+  // Skip images that are clearly not about the person
   const skipPatterns = /\b(logo|icon|flag|coat.of.arms|map|diagram|chart|waveform|signature)\b/i;
   const candidates = others.filter(img => !skipPatterns.test(img.filename));
+
+  // Build captions: prefer Wikipedia caption, fall back to cleaned filename
+  const getCaption = (img) => img ? (img.caption || captionFromFilename(img.filename)) : '';
+
+  // For secondary (portrait), fall back to generating caption from the URL filename
+  let secondaryCaption = mainImage ? getCaption(mainImage) : '';
+  if (!secondaryCaption && mainImageUrl) {
+    const urlFilename = decodeURIComponent(mainImageUrl.split('/').pop());
+    secondaryCaption = captionFromFilename(urlFilename);
+  }
 
   return {
     portrait: mainImageUrl,
     hero: candidates[0] ? candidates[0].url : null,
-    extra: candidates[1] ? candidates[1].url : null
+    extra: candidates[1] ? candidates[1].url : null,
+    captions: {
+      hero: candidates[0] ? getCaption(candidates[0]) : '',
+      secondary: secondaryCaption,
+      tertiary: candidates[1] ? getCaption(candidates[1]) : ''
+    }
   };
 }
 
@@ -541,7 +584,8 @@ async function lookupHero(name) {
       hero: heroImages.hero || mainImageUrl,      // Dramatic/largest → hero panel
       secondary: heroImages.portrait || mainImageUrl, // Portrait → smaller panel
       tertiary: heroImages.extra || null              // Third image if available
-    }
+    },
+    captions: heroImages.captions || {}
   };
 }
 

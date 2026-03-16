@@ -42,6 +42,7 @@ window.Form = (function() {
     els.heroCaption = document.getElementById('hero-caption');
     els.secondaryCaption = document.getElementById('secondary-caption');
     els.tertiaryCaption = document.getElementById('tertiary-caption');
+    els.showCaptions = document.getElementById('show-captions');
     els.tertiarySection = document.getElementById('tertiary-section');
     els.wordCount = document.getElementById('word-count');
     els.bioWarnings = document.getElementById('bio-warnings');
@@ -57,6 +58,9 @@ window.Form = (function() {
     for (const input of textInputs) {
       if (input) input.addEventListener('input', debounce(notifyChange, 150));
     }
+
+    // Show captions checkbox
+    els.showCaptions.addEventListener('change', notifyChange);
 
     // Category change → update cascading fields + theme
     els.category.addEventListener('change', () => {
@@ -281,13 +285,14 @@ window.Form = (function() {
       bio: els.bio.value.trim(),
       quote: els.quote.value.trim(),
       attribution: els.attribution.value.trim(),
-      heroCaption: els.heroCaption.value.trim(),
-      secondaryCaption: els.secondaryCaption.value.trim(),
-      tertiaryCaption: els.tertiaryCaption.value.trim(),
+      showCaptions: els.showCaptions.checked,
+      heroCaption: els.showCaptions.checked ? els.heroCaption.value.trim() : '',
+      secondaryCaption: els.showCaptions.checked ? els.secondaryCaption.value.trim() : '',
+      tertiaryCaption: els.showCaptions.checked ? els.tertiaryCaption.value.trim() : '',
       captions: {
-        hero: els.heroCaption.value.trim(),
-        secondary: els.secondaryCaption.value.trim(),
-        tertiary: els.tertiaryCaption.value.trim()
+        hero: els.showCaptions.checked ? els.heroCaption.value.trim() : '',
+        secondary: els.showCaptions.checked ? els.secondaryCaption.value.trim() : '',
+        tertiary: els.showCaptions.checked ? els.tertiaryCaption.value.trim() : ''
       }
     };
   }
@@ -383,6 +388,13 @@ window.Form = (function() {
 
     // Notify lookup-complete listeners (e.g. retrim reference capture)
     for (const cb of _lookupCompleteCallbacks) cb();
+
+    // Auto-fill captions from Wikipedia
+    if (data.captions) {
+      if (data.captions.hero) els.heroCaption.value = data.captions.hero;
+      if (data.captions.secondary) els.secondaryCaption.value = data.captions.secondary;
+      if (data.captions.tertiary) els.tertiaryCaption.value = data.captions.tertiary;
+    }
 
     // Clear old images, then load new ones into all panels
     ImageUpload.clearAll();
