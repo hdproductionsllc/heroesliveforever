@@ -152,6 +152,10 @@ function fetchImageInfo(fileTitles) {
  */
 async function fetchHeroImages(title, mainImageUrl) {
   const fileTitles = await fetchMediaList(title);
+  return fetchHeroImagesFromTitles(fileTitles, mainImageUrl);
+}
+
+async function fetchHeroImagesFromTitles(fileTitles, mainImageUrl) {
   if (fileTitles.length === 0) return { portrait: mainImageUrl, hero: null, extra: null };
 
   const images = await fetchImageInfo(fileTitles);
@@ -465,6 +469,9 @@ function trimBio(extract) {
 async function lookupHero(name) {
   const title = name.trim().replace(/\s+/g, '_');
 
+  // Start media list fetch immediately in parallel with summary (doesn't need summary data)
+  let mediaListPromise = fetchMediaList(title);
+
   // Step 1: Try direct lookup (fast path for exact names)
   let data, fullIntro;
   try {
@@ -498,6 +505,9 @@ async function lookupHero(name) {
     if (!data.extract) {
       throw new Error(`No Wikipedia article found for "${name}".`);
     }
+
+    // Re-fetch media list for the resolved title (different article)
+    mediaListPromise = fetchMediaList(resolved);
   }
 
   const { birthYear, deathYear } = extractYears(data.description, fullIntro || data.extract);
@@ -512,9 +522,9 @@ async function lookupHero(name) {
 
   const mainImageUrl = data.originalimage ? data.originalimage.source : null;
 
-  // Fetch additional images from the article for all panels
-  const resolvedTitle = (data.title || name).replace(/\s+/g, '_');
-  const heroImages = await fetchHeroImages(resolvedTitle, mainImageUrl);
+  // Image fetch was started in parallel — now resolve it
+  const fileTitles = await mediaListPromise;
+  const heroImages = await fetchHeroImagesFromTitles(fileTitles, mainImageUrl);
 
   return {
     name: data.title || name,
