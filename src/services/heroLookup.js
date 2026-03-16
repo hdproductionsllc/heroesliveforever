@@ -185,19 +185,40 @@ function isLicenseSafe(license) {
  * Generate a readable caption from a Wikipedia image filename.
  * e.g. "Gustave_Doré_-_Idylls_of_the_King_-_1867.jpg" → "Gustave Doré · Idylls of the King · 1867"
  */
-function captionFromFilename(filename) {
-  if (!filename) return '';
-  let name = filename
-    .replace(/\.[^.]+$/, '')        // strip extension
-    .replace(/_/g, ' ')             // underscores → spaces
-    .replace(/ - /g, ' · ')         // dashes → mid-dots
-    .replace(/\s{2,}/g, ' ')        // collapse whitespace
+function cleanCaption(text) {
+  if (!text) return '';
+  let clean = text
+    .replace(/\.[^.]+$/, '')                  // strip file extension
+    .replace(/_/g, ' ')                       // underscores → spaces
+    .replace(/^File:\s*/i, '')                // strip "File:" prefix
+    .replace(/\s*\([^)]*\)\s*/g, ' ')         // strip parentheticals (BEP engraved portrait), (3x4 cropped), etc.
+    .replace(/\s*\[[^\]]*\]\s*/g, ' ')        // strip brackets
+    .replace(/\b\d{3,4}px[-\s]*/gi, '')       // strip pixel dimensions like "1920px-"
+    .replace(/\bcropped\b/gi, '')             // strip "cropped"
+    .replace(/\bportrait\b/gi, '')            // strip "portrait" (redundant for a photo)
+    .replace(/\bphoto\b/gi, '')              // strip "photo"
+    .replace(/\bimage\b/gi, '')              // strip "image"
+    .replace(/\boriginal\b/gi, '')           // strip "original"
+    .replace(/\brestore[d]?\b/gi, '')        // strip "restored"
+    .replace(/\b[A-Z]{2,3}[-\s]+\d{4}[-\s]+/g, '') // strip location-year codes like "UK-2014-"
+    .replace(/(?<!\d)\d{1,2}(?!\d)/g, '')     // strip isolated 1-2 digit numbers (photo sequences, not years)
+    .replace(/\b\d{5,}\b/g, '')              // strip long number sequences (file IDs)
+    .replace(/-President\b/gi, '')           // strip "-President" suffix
+    .replace(/\bin\s+(the\s+)?stands?\b/gi, '')   // strip "in Stands"
+    .replace(/,\s*(?=[A-Z][a-z])/g, ' · ')  // "LINCOLN, Abraham" → "LINCOLN · Abraham"
+    .replace(/ - /g, ' · ')                   // dashes → mid-dots
+    .replace(/,\s*,/g, ',')                   // collapse double commas
+    .replace(/·\s*·/g, '·')                  // collapse double mid-dots
+    .replace(/\s{2,}/g, ' ')                  // collapse whitespace
+    .replace(/^[\s·,\-]+|[\s·,\-]+$/g, '')   // trim leading/trailing punctuation
     .trim();
-  // Strip leading "File:" if present
-  name = name.replace(/^File:\s*/i, '');
-  // Truncate overly long captions
-  if (name.length > 80) name = name.substring(0, 77) + '...';
-  return name;
+  // Truncate to fit one line
+  if (clean.length > 50) clean = clean.substring(0, 47) + '...';
+  return clean;
+}
+
+function captionFromFilename(filename) {
+  return cleanCaption(filename);
 }
 
 async function fetchHeroImagesFromTitles(mediaItems, mainImageUrl) {
@@ -223,8 +244,8 @@ async function fetchHeroImagesFromTitles(mediaItems, mainImageUrl) {
   const skipPatterns = /\b(logo|icon|flag|coat.of.arms|map|diagram|chart|waveform|signature)\b/i;
   const candidates = others.filter(img => !skipPatterns.test(img.filename));
 
-  // Build captions: prefer Wikipedia caption, fall back to cleaned filename
-  const getCaption = (img) => img ? (img.caption || captionFromFilename(img.filename)) : '';
+  // Build captions: prefer Wikipedia caption (cleaned), fall back to cleaned filename
+  const getCaption = (img) => img ? cleanCaption(img.caption) || captionFromFilename(img.filename) : '';
 
   // For secondary (portrait), fall back to generating caption from the URL filename
   let secondaryCaption = mainImage ? getCaption(mainImage) : '';

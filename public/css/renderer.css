@@ -95,12 +95,16 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 10px 10px 7px;
-  font-size: 7px;
-  letter-spacing: 2px;
+  padding: 4px 8px 3px;
+  font-size: 5.5px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   font-family: sans-serif;
   text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.7;
 }
 
 /* Bio panel — main structure set inline, these are content elements */
