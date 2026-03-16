@@ -50,7 +50,13 @@ async function generateBioPdf(heroData, panelDims, outputPath) {
   });
 
   // Launch Puppeteer and generate PDF
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    ...(process.env.PUPPETEER_EXECUTABLE_PATH && {
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+    })
+  });
   try {
     const page = await browser.newPage();
 
