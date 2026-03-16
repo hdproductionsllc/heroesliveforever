@@ -293,7 +293,11 @@ function isLikelyPerson(summaryData) {
     'country', 'city', 'state', 'province', 'territory', 'region',
     'film', 'album', 'song', 'band', 'river', 'mountain', 'lake',
     'television', 'series', 'novel', 'video game', 'software',
-    'municipality', 'village', 'town', 'county', 'island', 'list of'
+    'municipality', 'village', 'town', 'county', 'island', 'list of',
+    'theater play', 'theatre play', 'play by', 'play written',
+    'musical', 'opera by', 'book by',
+    'painting', 'sculpture', 'monument', 'building', 'bridge',
+    'battle of', 'war of', 'treaty of', 'act of'
   ];
   for (const w of notPerson) {
     if (desc.includes(w)) return false;
@@ -322,22 +326,45 @@ async function searchForPerson(query) {
   if (titles.length === 0) return null;
 
   // Verify top candidates in parallel for speed
-  const candidates = titles.slice(0, 5);
+  const candidates = titles.slice(0, 8);
   const results = await Promise.allSettled(
     candidates.map(t => fetchWikiSummary(t.replace(/\s+/g, '_')))
   );
 
-  // Return the first result that's a biographical article
+  // Score each candidate: prefer biographical articles whose title closely matches the query
+  const queryWords = query.toLowerCase().split(/\s+/);
+  let bestMatch = null;
+  let bestScore = -1;
+
   for (const result of results) {
-    if (result.status === 'fulfilled') {
-      const summary = result.value;
-      if (summary.extract && summary.type !== 'disambiguation' && isLikelyPerson(summary)) {
-        return summary.title;
-      }
+    if (result.status !== 'fulfilled') continue;
+    const summary = result.value;
+    if (!summary.extract || summary.type === 'disambiguation' || !isLikelyPerson(summary)) continue;
+
+    const title = (summary.title || '').toLowerCase();
+    const titleWords = title.replace(/\(.*\)/, '').trim().split(/\s+/);
+
+    // Score: how well does this title match the query?
+    let score = 0;
+    // Every query word present in title
+    for (const w of queryWords) { if (title.includes(w)) score += 10; }
+    // Bonus for exact or near-exact title match (no extra words)
+    if (titleWords.length <= queryWords.length + 1) score += 20;
+    // Bonus for having date ranges in description (strong biographical signal)
+    const desc = (summary.description || '');
+    if (/\d{4}.*\d{4}/.test(desc) || /born \d{4}/i.test(desc)) score += 15;
+    // Bonus for longer extract (more notable people have longer articles)
+    if ((summary.extract || '').length > 500) score += 10;
+    // Penalty for parenthetical disambiguation in title (e.g. "musician", "film")
+    if (/\(/.test(summary.title || '')) score -= 5;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = summary.title;
     }
   }
 
-  return null;
+  return bestMatch;
 }
 
 /**
@@ -541,10 +568,32 @@ function trimBio(extract) {
 }
 
 /**
+ * Resolve a Wikipedia title through redirects using the MediaWiki API.
+ * More reliable than the REST API for nicknames and abbreviations.
+ * e.g. "Abe_Lincoln" → "Abraham_Lincoln"
+ */
+function resolveRedirect(title) {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&redirects=true&format=json`;
+  return httpsGet(url).then(data => {
+    const pages = data.query && data.query.pages;
+    if (!pages) return title;
+    const page = Object.values(pages)[0];
+    // Page ID of -1 means it doesn't exist
+    if (!page || page.pageid === undefined || page.missing !== undefined) return title;
+    return (page.title || title).replace(/\s+/g, '_');
+  }).catch(() => title);
+}
+
+/**
  * Main lookup function. Takes a hero name, returns populated fields.
  */
 async function lookupHero(name) {
-  const title = name.trim().replace(/\s+/g, '_');
+  // Resolve redirects first (handles nicknames like "Abe Lincoln" → "Abraham Lincoln")
+  // Capitalize each word since Wikipedia titles are case-sensitive
+  const rawTitle = name.trim().split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('_');
+  const title = await resolveRedirect(rawTitle);
 
   // Start media list fetch immediately in parallel with summary (doesn't need summary data)
   let mediaListPromise = fetchMediaList(title);
