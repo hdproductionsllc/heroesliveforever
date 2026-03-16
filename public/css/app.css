@@ -349,6 +349,21 @@ textarea {
 .dpi-badge.yellow { background: rgba(221, 170, 68, 0.15); color: var(--yellow); border: 1px solid rgba(221, 170, 68, 0.3); }
 .dpi-badge.red { background: rgba(221, 85, 85, 0.15); color: var(--red); border: 1px solid rgba(221, 85, 85, 0.3); }
 
+.license-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: help;
+}
+.license-warning {
+  background: rgba(221, 170, 68, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(221, 170, 68, 0.3);
+}
+
 /* ═══ IMAGE GALLERY PICKER ═══ */
 
 .btn-gallery {

@@ -219,7 +219,7 @@ window.ImageUpload = (function() {
    * @param {string} panelId - 'hero', 'secondary', or 'tertiary'
    * @param {Object} serverData - response from /api/images/download-url
    */
-  function loadFromServer(panelId, serverData) {
+  function loadFromServer(panelId, serverData, license) {
     const zone = document.querySelector(`.drop-zone[data-panel="${panelId}"]`);
     if (!zone) return;
 
@@ -259,10 +259,30 @@ window.ImageUpload = (function() {
     // Update meta display
     updateMeta(panelId, serverData);
 
+    // Show license warning if image is not public domain
+    if (license && !license.safe) {
+      showLicenseWarning(panelId, license.name);
+    }
+
     // Auto-analyze crop position
     analyzeAndSetPosition(panelId, serverData.filename);
 
     notifyChange();
+  }
+
+  /**
+   * Show a license warning badge on an image panel's meta area.
+   */
+  function showLicenseWarning(panelId, licenseName) {
+    const metaEl = document.querySelector(`.image-meta[data-panel="${panelId}"]`);
+    if (!metaEl) return;
+    const badge = document.createElement('span');
+    badge.className = 'license-badge license-warning';
+    badge.title = licenseName
+      ? 'License: ' + licenseName + ' — may require attribution or restrict commercial use'
+      : 'Unknown license — verify rights before production use';
+    badge.textContent = licenseName || 'Unknown license';
+    metaEl.appendChild(badge);
   }
 
   /**

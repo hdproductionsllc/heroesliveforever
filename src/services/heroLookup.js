@@ -128,7 +128,7 @@ function fetchImageInfo(mediaItems) {
   // Build a caption lookup by normalized title
   const captionMap = {};
   for (const m of items) captionMap[m.title] = m.caption || '';
-  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url|size|mime&format=json`;
+  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url|size|mime|extmetadata&format=json`;
   return httpsGet(url).then(data => {
     const pages = data.query && data.query.pages;
     if (!pages) return [];
@@ -136,6 +136,8 @@ function fetchImageInfo(mediaItems) {
       .filter(p => p.imageinfo && p.imageinfo[0])
       .map(p => {
         const ii = p.imageinfo[0];
+        const meta = ii.extmetadata || {};
+        const license = (meta.LicenseShortName && meta.LicenseShortName.value) || '';
         return {
           filename: p.title.replace(/^File:/, ''),
           url: ii.url,
@@ -144,7 +146,8 @@ function fetchImageInfo(mediaItems) {
           pixels: ii.width * ii.height,
           aspectRatio: ii.width / ii.height,
           mime: ii.mime,
-          caption: captionMap[p.title] || ''
+          caption: captionMap[p.title] || '',
+          license
         };
       });
   }).catch(() => []);
@@ -162,6 +165,20 @@ function fetchImageInfo(mediaItems) {
 async function fetchHeroImages(title, mainImageUrl) {
   const fileTitles = await fetchMediaList(title);
   return fetchHeroImagesFromTitles(fileTitles, mainImageUrl);
+}
+
+/**
+ * Check if a Wikimedia license is safe for commercial use without restrictions.
+ * Returns true for public domain and unrestricted licenses.
+ */
+function isLicenseSafe(license) {
+  if (!license) return false;
+  const l = license.toLowerCase();
+  // Public domain variants
+  if (/^pd\b|public domain|cc0|no restrictions/i.test(l)) return true;
+  // US government works
+  if (/usgov|us-gov|usaf|navy|army|marines|uscg|nasa|noaa/i.test(l)) return true;
+  return false;
 }
 
 /**
@@ -216,6 +233,18 @@ async function fetchHeroImagesFromTitles(mediaItems, mainImageUrl) {
     secondaryCaption = captionFromFilename(urlFilename);
   }
 
+  // License info
+  const getLicense = (img) => img ? (img.license || '') : '';
+
+  // If the main portrait wasn't in the media list, look up its license directly
+  let secondaryLicense = getLicense(mainImage);
+  if (!secondaryLicense && mainFilename) {
+    try {
+      const info = await fetchImageInfo([{ title: 'File:' + mainFilename, caption: '' }]);
+      if (info[0]) secondaryLicense = info[0].license || '';
+    } catch (e) { /* ignore */ }
+  }
+
   return {
     portrait: mainImageUrl,
     hero: candidates[0] ? candidates[0].url : null,
@@ -224,6 +253,11 @@ async function fetchHeroImagesFromTitles(mediaItems, mainImageUrl) {
       hero: candidates[0] ? getCaption(candidates[0]) : '',
       secondary: secondaryCaption,
       tertiary: candidates[1] ? getCaption(candidates[1]) : ''
+    },
+    licenses: {
+      hero: { name: getLicense(candidates[0]), safe: isLicenseSafe(getLicense(candidates[0])) },
+      secondary: { name: secondaryLicense, safe: isLicenseSafe(secondaryLicense) },
+      tertiary: { name: getLicense(candidates[1]), safe: isLicenseSafe(getLicense(candidates[1])) }
     }
   };
 }
@@ -585,7 +619,8 @@ async function lookupHero(name) {
       secondary: heroImages.portrait || mainImageUrl, // Portrait → smaller panel
       tertiary: heroImages.extra || null              // Third image if available
     },
-    captions: heroImages.captions || {}
+    captions: heroImages.captions || {},
+    licenses: heroImages.licenses || {}
   };
 }
 

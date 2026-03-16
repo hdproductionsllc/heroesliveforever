@@ -399,7 +399,7 @@ window.Form = (function() {
     // Clear old images, then load new ones into all panels
     ImageUpload.clearAll();
     if (data.images) {
-      loadAllPanelImages(data.images);
+      loadAllPanelImages(data.images, data.licenses || {});
     }
   }
 
@@ -407,7 +407,7 @@ window.Form = (function() {
    * Download and load images into all available panels.
    * Downloads happen in parallel for speed.
    */
-  async function loadAllPanelImages(images) {
+  async function loadAllPanelImages(images, licenses) {
     // Build download tasks: [panelId, url] pairs
     const tasks = [];
     if (images.hero) tasks.push(['hero', images.hero]);
@@ -432,7 +432,8 @@ window.Form = (function() {
     for (const result of results) {
       if (result.status === 'fulfilled' && result.value) {
         const { panelId, data } = result.value;
-        ImageUpload.loadFromServer(panelId, data);
+        const license = licenses[panelId] || null;
+        ImageUpload.loadFromServer(panelId, data, license);
       }
     }
   }
