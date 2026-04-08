@@ -55,7 +55,7 @@ async function generateDesignPdf(heroData, rendererHtml, outputPath) {
     // Strip the frame border, fix aspect ratio, and scale to fill print page
     await page.evaluate((pageW, pageH) => {
       // Remove preview-only decorative elements
-      document.querySelectorAll('.dim-side, .dim-label, .preview-title').forEach(el => el.remove());
+      document.querySelectorAll('.dim-side, .dim-label, .preview-title, .divider-handle').forEach(el => el.remove());
 
       const frameWrap = document.querySelector('.frame-wrap');
       if (!frameWrap) return;
@@ -177,7 +177,7 @@ function buildPrintHtml(contentHtml, matWidthIn, matHeightIn) {
   }
 
   /* Hide preview-only elements */
-  .dim-side, .dim-label, .preview-title {
+  .dim-side, .dim-label, .preview-title, .divider-handle {
     display: none !important;
   }
 

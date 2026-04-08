@@ -83,7 +83,7 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
     // Strip frame border and mat border, scale content to fill print area
     await page.evaluate((pageW, pageH, bleedPx, matPaddingPx) => {
       // Remove preview-only elements
-      document.querySelectorAll('.dim-side, .dim-label, .preview-title').forEach(el => el.remove());
+      document.querySelectorAll('.dim-side, .dim-label, .preview-title, .divider-handle').forEach(el => el.remove());
 
       const frameWrap = document.querySelector('.frame-wrap');
       if (!frameWrap) return;
@@ -250,7 +250,7 @@ function buildPrintHtml(contentHtml, printWidthIn, printHeightIn, bleedIn, matPa
   }
 
   /* Hide preview-only elements */
-  .dim-side, .dim-label, .preview-title {
+  .dim-side, .dim-label, .preview-title, .divider-handle {
     display: none !important;
   }
 

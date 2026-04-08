@@ -128,6 +128,17 @@ router.post('/html', async (req, res) => {
   try {
     const { heroData, rendererHtml } = req.body;
 
+    // Resolve image server paths to absolute filesystem paths
+    if (heroData.images) {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      for (const [key, img] of Object.entries(heroData.images)) {
+        if (img && img.serverPath) {
+          const filename = path.basename(img.serverPath);
+          img.serverPath = path.resolve(uploadsDir, filename);
+        }
+      }
+    }
+
     const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const filename = `${safeName}_${heroData.frameSize}_${Date.now()}.html`;
     const outputPath = path.join(__dirname, '..', '..', 'output', 'html', filename);

@@ -41,8 +41,9 @@ async function exportHtml(heroData, rendererHtml, outputPath) {
     }
   }
 
-  // Replace image src URLs in the renderer HTML with base64 data
-  let html = rendererHtml;
+  // Strip interactive preview-only elements (divider handles break CSS Grid in exports)
+  let html = rendererHtml.replace(/<div class="divider-handle[^"]*"[^>]*><\/div>/g, '');
+
   for (const [key, dataUrl] of Object.entries(images)) {
     // Replace any src that contains the upload filename
     if (heroData.images[key] && heroData.images[key].filename) {
