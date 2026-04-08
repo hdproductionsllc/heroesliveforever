@@ -11,7 +11,8 @@ const dirs = [
   'output',
   'output/jsx',
   'output/pdf',
-  'output/html'
+  'output/html',
+  'output/print'
 ];
 for (const dir of dirs) {
   const fullPath = path.join(__dirname, dir);

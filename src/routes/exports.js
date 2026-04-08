@@ -11,6 +11,8 @@ const { v4: uuidv4 } = require('uuid');
 const { generateJsx } = require('../services/jsxGenerator');
 const { generateBioPdf } = require('../services/bioPdfGenerator');
 const { generateDesignPdf } = require('../services/designPdfGenerator');
+const { generatePrintImage } = require('../services/printImageGenerator');
+const { generateSpecSheet } = require('../services/specSheetGenerator');
 const { exportHtml } = require('../services/htmlExporter');
 const { calculateLayout } = require('../services/layoutEngine');
 
@@ -143,10 +145,71 @@ router.post('/html', async (req, res) => {
   }
 });
 
+// POST /api/exports/print-image — generate high-res print PNG
+router.post('/print-image', async (req, res) => {
+  try {
+    const { heroData, rendererHtml } = req.body;
+
+    if (!rendererHtml) {
+      return res.status(400).json({ error: 'No renderer HTML provided' });
+    }
+
+    // Resolve image server paths to absolute filesystem paths
+    if (heroData.images) {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      for (const [key, img] of Object.entries(heroData.images)) {
+        if (img && img.serverPath) {
+          const filename = path.basename(img.serverPath);
+          img.serverPath = path.resolve(uploadsDir, filename);
+        }
+      }
+    }
+
+    const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const filename = `${safeName}_${heroData.frameSize}_print_${Date.now()}.png`;
+    const outputPath = path.join(__dirname, '..', '..', 'output', 'print', filename);
+
+    const result = await generatePrintImage(heroData, rendererHtml, outputPath);
+
+    res.json({
+      success: true,
+      filename,
+      printSize: { width: result.widthIn, height: result.heightIn },
+      pixels: { width: result.widthPx, height: result.heightPx },
+      dpi: result.dpi,
+      resolutionReport: result.resolutionReport,
+      downloadUrl: `/api/exports/download/print/${filename}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/exports/spec-sheet — generate dimension spec sheet PDF
+router.post('/spec-sheet', async (req, res) => {
+  try {
+    const heroData = req.body;
+
+    const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const filename = `${safeName}_${heroData.frameSize}_spec_${Date.now()}.pdf`;
+    const outputPath = path.join(__dirname, '..', '..', 'output', 'print', filename);
+
+    await generateSpecSheet(heroData, outputPath);
+
+    res.json({
+      success: true,
+      filename,
+      downloadUrl: `/api/exports/download/print/${filename}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/exports/download/:type/:filename — download an exported file
 router.get('/download/:type/:filename', (req, res) => {
   const { type, filename } = req.params;
-  const validTypes = ['jsx', 'pdf', 'html'];
+  const validTypes = ['jsx', 'pdf', 'html', 'print'];
   if (!validTypes.includes(type)) {
     return res.status(400).json({ error: 'Invalid export type' });
   }
@@ -162,7 +225,8 @@ router.get('/download/:type/:filename', (req, res) => {
   const contentTypes = {
     jsx: 'application/javascript',
     pdf: 'application/pdf',
-    html: 'text/html'
+    html: 'text/html',
+    print: filename.endsWith('.png') ? 'image/png' : 'application/pdf'
   };
 
   res.setHeader('Content-Type', contentTypes[type]);
