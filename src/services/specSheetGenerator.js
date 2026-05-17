@@ -132,6 +132,16 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
   h2 { font-size: 13px; color: #555; margin-bottom: 12px; font-weight: normal; }
   h3 { font-size: 12px; margin: 16px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
   .header { margin-bottom: 16px; }
+  .sleek-banner {
+    background: #fef6e0;
+    border-left: 4px solid #c8102e;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 11px;
+    line-height: 1.55;
+    color: #2a1a08;
+  }
+  .sleek-banner strong { color: #c8102e; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .specs-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
   .specs-table th, .specs-table td {
@@ -182,6 +192,13 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
     <h2>${frame.width}" × ${frame.height}" frame &nbsp;|&nbsp; ${layoutDef ? layoutDef.label : heroData.layout}</h2>
   </div>
 
+  ${isSleek ? `<div class="sleek-banner">
+    <strong>SLEEK MODE — no physical mat.</strong>
+    Print a <strong>borderless ${frame.printW}" × ${frame.printH}"</strong> sheet (full-bleed, no white border).
+    The print sits behind the glass directly; the ${frameBorder}" molding overlaps the print edges by ~${fmt((frame.width - frame.printW) / 2)}" on each side.
+    Do not order a mat board for this frame.
+  </div>` : ''}
+
   <div class="grid">
     <div>
       <h3>Frame Dimensions</h3>
@@ -201,10 +218,15 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
 
       <h3>Print Sheet</h3>
       <table class="specs-table">
-        ${hasExplicitPrint
-          ? `<tr><td class="label">Standard print size</td><td class="value">${frame.printW}" × ${frame.printH}"</td></tr>`
-          : `<tr><td class="label">Print area (with bleed)</td><td class="value">${fmt(printWidthIn)}" × ${fmt(printHeightIn)}"</td></tr>
-             <tr><td class="label">Bleed</td><td class="value">${bleed}" per side</td></tr>`}
+        ${isSleek
+          ? `<tr><td class="label">Print size</td><td class="value"><strong>${frame.printW}" × ${frame.printH}" — borderless / full-bleed</strong></td></tr>
+             <tr><td class="label">Mat board required</td><td class="value">None — print fills frame interior directly</td></tr>
+             <tr><td class="label">Frame rabbet overlap</td><td class="value">~${fmt((frame.width - frame.printW) / 2)}" each side (print edges hidden behind molding)</td></tr>`
+          : hasExplicitPrint
+            ? `<tr><td class="label">Standard print size</td><td class="value">${frame.printW}" × ${frame.printH}"</td></tr>
+               <tr><td class="label">Mat board required</td><td class="value">Yes — ${fmt(matPadding)}" visible mat per side</td></tr>`
+            : `<tr><td class="label">Print area (with bleed)</td><td class="value">${fmt(printWidthIn)}" × ${fmt(printHeightIn)}"</td></tr>
+               <tr><td class="label">Bleed</td><td class="value">${bleed}" per side</td></tr>`}
         <tr><td class="label">Resolution at 300 DPI</td><td class="value">${actualDpi} DPI</td></tr>
         <tr><td class="label">Pixel dimensions</td><td class="value">${widthPx} × ${heightPx} px</td></tr>
         <tr><td class="label">Panel gap</td><td class="value">${fmt(panelGap)}"</td></tr>
