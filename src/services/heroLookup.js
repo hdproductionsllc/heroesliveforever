@@ -120,7 +120,7 @@ function fetchMediaList(title) {
  * Get image info (URL + dimensions) for a batch of Wikipedia file titles.
  * Uses the MediaWiki imageinfo API which accepts multiple titles at once.
  */
-function fetchImageInfo(mediaItems) {
+function fetchImageInfo(mediaItems, thumbWidth) {
   if (mediaItems.length === 0) return Promise.resolve([]);
   // Accept either objects {title, caption} or plain strings
   const items = mediaItems.map(m => typeof m === 'string' ? { title: m, caption: '' } : m);
@@ -128,7 +128,12 @@ function fetchImageInfo(mediaItems) {
   // Build a caption lookup by normalized title
   const captionMap = {};
   for (const m of items) captionMap[m.title] = m.caption || '';
-  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url|size|mime|extmetadata&format=json`;
+  // iiurlwidth asks Wikimedia to generate (and cache) a thumbnail at that width
+  // and return its URL. This is the only reliable way to get gallery thumbs —
+  // baking the size into the path directly only works if Wikimedia has already
+  // cached that exact size, which is unpredictable per image.
+  const thumbParam = thumbWidth ? `&iiurlwidth=${thumbWidth}` : '';
+  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url|size|mime|extmetadata${thumbParam}&format=json`;
   return httpsGet(url).then(data => {
     const pages = data.query && data.query.pages;
     if (!pages) return [];
@@ -141,6 +146,7 @@ function fetchImageInfo(mediaItems) {
         return {
           filename: p.title.replace(/^File:/, ''),
           url: ii.url,
+          thumbUrl: ii.thumburl || null,
           width: ii.width,
           height: ii.height,
           pixels: ii.width * ii.height,
@@ -743,7 +749,8 @@ async function fetchGallery(title) {
     batches.push(fileTitles.slice(i, i + 50));
   }
 
-  const batchResults = await Promise.all(batches.map(b => fetchImageInfo(b)));
+  // Request 240px thumbnails for gallery display via Wikimedia's iiurlwidth API.
+  const batchResults = await Promise.all(batches.map(b => fetchImageInfo(b, 240)));
   const images = batchResults.flat();
 
   // Same filtering as fetchHeroImages: JPEG/PNG, min 300px shortest side
@@ -758,7 +765,7 @@ async function fetchGallery(title) {
     .sort((a, b) => b.pixels - a.pixels)
     .map(img => ({
       url: img.url,
-      thumb: makeThumbUrl(img.url, 200),
+      thumb: img.thumbUrl || img.url, // API-generated thumb is guaranteed cached; fall back to original
       width: img.width,
       height: img.height,
       filename: img.filename

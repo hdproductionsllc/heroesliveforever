@@ -66,7 +66,7 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
   const html = embedImages(heroData, rendererHtml);
 
   // Build clean HTML for the print area only
-  const fullHtml = buildPrintHtml(html, printWidthIn, printHeightIn, bleed, matPadding);
+  const fullHtml = buildPrintHtml(html, printWidthIn, printHeightIn, bleed, matWidthIn);
 
   // Puppeteer viewport in CSS pixels (96 DPI), scale factor gets us to print DPI
   const cssWidth = Math.round(printWidthIn * 96);
@@ -146,7 +146,7 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
       frameWrap.style.width = `${pageW}px`;
       frameWrap.style.height = `${pageH}px`;
       frameWrap.style.overflow = 'hidden';
-    }, cssWidth, cssHeight, Math.round(bleed * 96), Math.round(matPadding * 96));
+    }, cssWidth, cssHeight, Math.round(bleed * 96), Math.round(matWidthIn * 96));
 
     // Take screenshot as PNG
     const screenshotBuffer = await page.screenshot({
