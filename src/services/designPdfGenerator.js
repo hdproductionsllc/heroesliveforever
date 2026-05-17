@@ -25,9 +25,15 @@ async function generateDesignPdf(heroData, rendererHtml, outputPath) {
   const frame = frameSizes[heroData.frameSize];
   if (!frame) throw new Error(`Unknown frame size: ${heroData.frameSize}`);
 
-  // Mat = frame minus the physical frame border on each side
-  const matWidthIn = frame.width - 2 * printDimensions.frameBorder;
-  const matHeightIn = frame.height - 2 * printDimensions.frameBorder;
+  // Honor per-frame molding override (falls back to global default).
+  const moldingIn = frame.molding !== undefined ? frame.molding : printDimensions.frameBorder;
+
+  // For frames with an explicit print size (sleek 11×14, standard 8.5×11, 8×10),
+  // export the PDF at exactly that size — that's what the user sends to the printer.
+  // For legacy frames, export at frame-interior (everything inside the wood molding)
+  // so the multi-panel composition prints as one full sheet that fills the mat opening.
+  const matWidthIn = frame.printW || (frame.width - 2 * moldingIn);
+  const matHeightIn = frame.printH || (frame.height - 2 * moldingIn);
 
   // Embed uploaded images as base64 data URLs
   const html = embedImages(heroData, rendererHtml);

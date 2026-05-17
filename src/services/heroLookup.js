@@ -62,7 +62,7 @@ function httpsGet(url) {
   return new Promise((resolve, reject) => {
     const request = (targetUrl, redirectCount) => {
       if (redirectCount > 5) return reject(new Error('Too many redirects'));
-      https.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (res) => {
+      https.get(targetUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0 (https://github.com/hdproductionsllc/heroesliveforever) Node.js' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return request(res.headers.location, redirectCount + 1);
         }

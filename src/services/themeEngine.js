@@ -94,13 +94,14 @@ function resolveTheme(opts) {
       spec.typography.display = typography.display[musicKey];
     }
 
-    // Classical music gets light bio panel
+    // Classical music gets a refined cream card vs. the neon black/yellow default —
+    // still bold/modern but reads as "concert hall" rather than "rock venue."
     if (subcategory.toLowerCase() === 'classical') {
-      spec.bio.background = 'linear-gradient(160deg, #f8f4ee 0%, #f0ebe0 50%, #e8e2d4 100%)';
-      spec.bio.nameColor = '#2a1e14';
-      spec.bio.textColor = '#3a2e22';
-      spec.bio.quoteColor = '#3a2e22';
-      spec.bio.attributionColor = '#8a7e6e';
+      spec.bio.background = '#f4ebde';
+      spec.bio.nameColor = '#0a0a0a';
+      spec.bio.textColor = '#222222';
+      spec.bio.quoteColor = '#7a6a4e';
+      spec.bio.attributionColor = '#7a6a4e';
     }
   }
 
@@ -126,10 +127,10 @@ function overlayTeamColors(spec, category, colors) {
     case 'sports':
       // Frame accent uses team primary
       spec.frame.border = `linear-gradient(145deg, ${darkenHex(primary, 0.3)}, ${darkenHex(primary, 0.4)} 15%, #111 40%, ${darkenHex(primary, 0.35)} 70%, #0a0a0a)`;
-      // Mat stays dark but with subtle team tint
-      spec.mat.background = darkenHex(primary, 0.08);
-      // Bio panel uses team color subtly
-      spec.bio.background = `linear-gradient(160deg, #f8f6f2 0%, ${lightenHex(primary, 0.92)} 50%, #e8e2d8 100%)`;
+      // Mat is the team primary at full strength — bold broadcast color block.
+      spec.mat.background = primary;
+      // Bio panel: bright bone trading-card with team primary as the divider accent.
+      spec.bio.background = '#f7f4ec';
       spec.bio.divider = `linear-gradient(90deg, transparent, ${primary}, transparent)`;
       // Accent color is team primary
       spec.accent = primary;

@@ -29,13 +29,23 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
   const frame = frameSizes[heroData.frameSize];
   if (!frame) throw new Error(`Unknown frame size: ${heroData.frameSize}`);
 
-  const { frameBorder, matPadding, bleed, dpi: targetDpi } = printDimensions;
+  const { bleed, dpi: targetDpi } = printDimensions;
 
-  // Print area = mat opening + bleed on each side
-  const openingWidth = frame.width - 2 * frameBorder - 2 * matPadding;
-  const openingHeight = frame.height - 2 * frameBorder - 2 * matPadding;
-  const printWidthIn = openingWidth + 2 * bleed;
-  const printHeightIn = openingHeight + 2 * bleed;
+  // Pull canonical dimensions from layout engine — honors per-frame molding
+  // and printW/printH overrides.
+  const layout = calculateLayout(heroData.frameSize, heroData.layout);
+  const moldingIn = layout.dimensions.moldingIn;
+  const matWidthIn = layout.dimensions.matPaddingIn;
+  const matHeightIn = layout.dimensions.matPaddingHeightIn;
+
+  const openingWidth = frame.width - 2 * moldingIn - 2 * matWidthIn;
+  const openingHeight = frame.height - 2 * moldingIn - 2 * matHeightIn;
+
+  // When the frame has a standard print size (sleek, 8×10, 8.5×11, etc.) the
+  // PNG matches that exactly so it goes straight to a print lab. Otherwise we
+  // export the opening + bleed for custom-cut sheets.
+  const printWidthIn = frame.printW || (openingWidth + 2 * bleed);
+  const printHeightIn = frame.printH || (openingHeight + 2 * bleed);
 
   // Calculate pixel dimensions, capped at MAX_PIXELS
   const longestEdge = Math.max(printWidthIn, printHeightIn);

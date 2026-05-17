@@ -267,9 +267,15 @@
       }
     }
 
+    // Sync the palette-override swatches to the freshly-resolved theme so
+    // any "Auto" pickers show the theme's current values, then merge any
+    // active overrides on top of the theme before render.
+    Form.syncPickersToTheme(theme);
+    const themedTheme = Form.applyOverrides(theme);
+
     // Render preview
     Renderer.render({
-      theme,
+      theme: themedTheme,
       heroData: data,
       frameSize: data.frameSize,
       layout: data.layout,

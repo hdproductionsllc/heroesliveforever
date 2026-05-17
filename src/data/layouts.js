@@ -9,6 +9,40 @@
  */
 
 const layouts = {
+  // ═══ 2-PANEL LAYOUTS ═══
+
+  '2-panel': {
+    label: '2-Panel: Hero Left',
+    description: 'Hero image left, bio panel right',
+    panelCount: 2,
+    minSize: '8x10',
+    grid: {
+      columns: [1.3, 1],
+      rows: [1],
+      gap: 10
+    },
+    panels: [
+      { id: 'hero', type: 'image', label: 'Hero Image', column: [1, 1], row: [1, 1], imagePosition: 'center 20%' },
+      { id: 'bio', type: 'bio', label: 'Bio Panel', column: [2, 2], row: [1, 1] }
+    ]
+  },
+
+  '2-panel-top': {
+    label: '2-Panel: Hero Top',
+    description: 'Hero image top, bio panel bottom',
+    panelCount: 2,
+    minSize: '8x10',
+    grid: {
+      columns: [1],
+      rows: [1.5, 1],
+      gap: 10
+    },
+    panels: [
+      { id: 'hero', type: 'image', label: 'Hero Image', column: [1, 1], row: [1, 1], imagePosition: 'center 25%' },
+      { id: 'bio', type: 'bio', label: 'Bio Panel', column: [1, 1], row: [2, 2] }
+    ]
+  },
+
   // ═══ 3-PANEL LAYOUTS ═══
 
   '3-panel': {
@@ -176,13 +210,15 @@ const layouts = {
  * previewWidth: base pixel width for browser preview.
  */
 const frameSizes = {
-  '8x10':  { width: 8,  height: 10, aspect: '4:5',  previewWidth: 340, layouts: ['3-panel', '3-panel-right'] },
-  '12.75x14.75': { width: 12.75, height: 14.75, aspect: '~6:7', previewWidth: 440, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'] },
-  '12x16': { width: 12, height: 16, aspect: '3:4',  previewWidth: 400, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'] },
-  '16x20': { width: 16, height: 20, aspect: '4:5',  previewWidth: 480, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right'] },
-  '20x24': { width: 20, height: 24, aspect: '5:6',  previewWidth: 540, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'] },
-  '24x24': { width: 24, height: 24, aspect: '1:1',  previewWidth: 620, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'] },
-  '24x36': { width: 24, height: 36, aspect: '2:3',  previewWidth: 500, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '4-panel-alt'] }
+  '8x10':  { width: 8,  height: 10, aspect: '4:5',  previewWidth: 340, molding: 0.75, layouts: ['3-panel', '3-panel-right', '2-panel', '2-panel-top'] },
+  '11.75x14.75': { width: 11.75, height: 14.75, aspect: '~4:5', previewWidth: 415, molding: 0.75, printW: 11, printH: 14, sleek: true, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'] },
+  '12.25x14.75': { width: 12.25, height: 14.75, aspect: '~5:6', previewWidth: 425, molding: 0.75, printW: 8.5, printH: 11, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'] },
+  '12.75x14.75': { width: 12.75, height: 14.75, aspect: '~6:7', previewWidth: 440, molding: 0.75, printW: 8, printH: 10, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'] },
+  '12x16': { width: 12, height: 16, aspect: '3:4',  previewWidth: 400, molding: 0.75, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'] },
+  '16x20': { width: 16, height: 20, aspect: '4:5',  previewWidth: 480, molding: 0.75, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '2-panel', '2-panel-top'] },
+  '20x24': { width: 20, height: 24, aspect: '5:6',  previewWidth: 540, molding: 0.75, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '2-panel', '2-panel-top'] },
+  '24x24': { width: 24, height: 24, aspect: '1:1',  previewWidth: 620, molding: 0.75, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '2-panel', '2-panel-top'] },
+  '24x36': { width: 24, height: 36, aspect: '2:3',  previewWidth: 500, molding: 0.75, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '4-panel-alt', '2-panel', '2-panel-top'] }
 };
 
 /**

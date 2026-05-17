@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Heroes Live Forever — Design Tool</title>
-  <link rel="stylesheet" href="/css/app.css?v=7">
-  <link rel="stylesheet" href="/css/renderer.css?v=7">
+  <link rel="stylesheet" href="/css/app.css?v=13">
+  <link rel="stylesheet" href="/css/renderer.css?v=13">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Oswald:wght@400;700&family=Bebas+Neue&family=Archivo+Black&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -27,7 +27,7 @@
             <div class="field">
               <label for="hero-name">Name</label>
               <div class="name-lookup-row">
-                <input type="text" id="hero-name" placeholder="J.R.R. Tolkien" required>
+                <input type="text" id="hero-name" placeholder="Albert Pujols" required>
                 <button type="button" id="btn-lookup" class="btn-lookup" title="Auto-populate from Wikipedia">
                   <span class="lookup-label">Look Up</span>
                   <span class="lookup-spinner" style="display:none;"></span>
@@ -38,11 +38,11 @@
             <div class="field-row">
               <div class="field">
                 <label for="birth-year">Born</label>
-                <input type="text" id="birth-year" placeholder="1892">
+                <input type="text" id="birth-year" placeholder="1980">
               </div>
               <div class="field">
                 <label for="death-year">Died</label>
-                <input type="text" id="death-year" placeholder="1973">
+                <input type="text" id="death-year" placeholder="">
               </div>
             </div>
 
@@ -50,8 +50,8 @@
               <label for="category">Category</label>
               <select id="category">
                 <option value="military">Military / Veterans</option>
-                <option value="sports">Sports Legends</option>
-                <option value="historical" selected>Historical Figures</option>
+                <option value="sports" selected>Sports Legends</option>
+                <option value="historical">Historical Figures</option>
                 <option value="national">National Heroes / Heads of State</option>
                 <option value="music">Music / Arts / Culture</option>
                 <option value="personal">Personal Heroes</option>
@@ -80,6 +80,44 @@
             </div>
           </section>
 
+          <!-- Palette Override Section -->
+          <section class="form-section">
+            <h3 class="section-title">Palette Override</h3>
+            <div class="color-picker-list">
+              <div class="color-picker-row" data-override="frameWood">
+                <label for="ov-frame-wood">Frame</label>
+                <input type="color" id="ov-frame-wood" class="color-swatch" data-override="frameWood" value="#000000">
+                <button type="button" class="btn-auto" data-override="frameWood" title="Reset to theme default">Auto</button>
+              </div>
+              <div class="color-picker-row" data-override="matBg">
+                <label for="ov-mat-bg">Mat</label>
+                <input type="color" id="ov-mat-bg" class="color-swatch" data-override="matBg" value="#000000">
+                <button type="button" class="btn-auto" data-override="matBg" title="Reset to theme default">Auto</button>
+              </div>
+              <div class="color-picker-row" data-override="bioBg">
+                <label for="ov-bio-bg">Bio Panel</label>
+                <input type="color" id="ov-bio-bg" class="color-swatch" data-override="bioBg" value="#000000">
+                <button type="button" class="btn-auto" data-override="bioBg" title="Reset to theme default">Auto</button>
+              </div>
+              <div class="color-picker-row" data-override="bioName">
+                <label for="ov-bio-name">Name</label>
+                <input type="color" id="ov-bio-name" class="color-swatch" data-override="bioName" value="#000000">
+                <button type="button" class="btn-auto" data-override="bioName" title="Reset to theme default">Auto</button>
+              </div>
+              <div class="color-picker-row" data-override="bioText">
+                <label for="ov-bio-text">Bio Text</label>
+                <input type="color" id="ov-bio-text" class="color-swatch" data-override="bioText" value="#000000">
+                <button type="button" class="btn-auto" data-override="bioText" title="Reset to theme default">Auto</button>
+              </div>
+              <div class="color-picker-row" data-override="imageTint">
+                <label for="ov-image-tint">Image Tint</label>
+                <input type="color" id="ov-image-tint" class="color-swatch" data-override="imageTint" value="#000000">
+                <button type="button" class="btn-auto" data-override="imageTint" title="Reset to theme default">Auto</button>
+              </div>
+            </div>
+            <small class="field-hint">Overrides apply on top of the selected theme. Click "Auto" to restore the theme value.</small>
+          </section>
+
           <!-- Frame & Layout Section -->
           <section class="form-section">
             <h3 class="section-title">Frame &amp; Layout</h3>
@@ -88,7 +126,9 @@
               <label for="frame-size">Frame Size</label>
               <select id="frame-size">
                 <option value="8x10">8 &times; 10</option>
-                <option value="12.75x14.75" selected>12.75 &times; 14.75 (frame stock)</option>
+                <option value="11.75x14.75" selected>11.75 &times; 14.75 (11&times;14 sleek)</option>
+                <option value="12.25x14.75">12.25 &times; 14.75 (8.5&times;11 print)</option>
+                <option value="12.75x14.75">12.75 &times; 14.75 (8&times;10 print)</option>
                 <option value="12x16">12 &times; 16</option>
                 <option value="16x20">16 &times; 20</option>
                 <option value="20x24">20 &times; 24</option>
@@ -125,7 +165,7 @@
 
             <div class="field">
               <label for="hero-caption">Hero Caption</label>
-              <input type="text" id="hero-caption" placeholder="Gustave Dor&eacute; &middot; Idylls of the King &middot; 1867">
+              <input type="text" id="hero-caption" placeholder="St. Louis Cardinals &middot; Busch Stadium &middot; 2011">
             </div>
 
             <div class="image-upload" id="upload-secondary">
@@ -139,7 +179,7 @@
 
             <div class="field">
               <label for="secondary-caption">Secondary Caption</label>
-              <input type="text" id="secondary-caption" placeholder="Lancashire Fusiliers &middot; 1916">
+              <input type="text" id="secondary-caption" placeholder="Los Angeles Angels &middot; 2012">
             </div>
 
             <div id="tertiary-section" style="display:none;">
@@ -165,18 +205,18 @@
 
             <div class="field">
               <label for="bio-text">Bio Text <span id="word-count" class="word-count">0 words</span></label>
-              <textarea id="bio-text" rows="6" maxlength="5000" placeholder="Born in South Africa and orphaned by twelve..."></textarea>
+              <textarea id="bio-text" rows="6" maxlength="5000" placeholder="Born in the Dominican Republic, debuted with the Cardinals in 2001..."></textarea>
               <div id="bio-warnings" class="field-warnings"></div>
             </div>
 
             <div class="field">
               <label for="quote">Signature Quote</label>
-              <input type="text" id="quote" maxlength="500" placeholder="Not all those who wander are lost.">
+              <input type="text" id="quote" maxlength="500" placeholder="See the ball, hit the ball.">
             </div>
 
             <div class="field">
               <label for="attribution">Attribution</label>
-              <input type="text" id="attribution" maxlength="200" placeholder="Author | Philologist | Professor">
+              <input type="text" id="attribution" maxlength="200" placeholder="First Baseman | 3x MVP | World Series Champion">
               <small class="field-hint">Separate roles with | or commas</small>
             </div>
           </section>
@@ -213,11 +253,11 @@
     </div>
   </div>
 
-  <script src="/js/themeClient.js?v=7"></script>
-  <script src="/js/renderer.js?v=7"></script>
-  <script src="/js/imageUpload.js?v=7"></script>
-  <script src="/js/form.js?v=7"></script>
-  <script src="/js/exports.js?v=7"></script>
-  <script src="/js/app.js?v=7"></script>
+  <script src="/js/themeClient.js?v=13"></script>
+  <script src="/js/renderer.js?v=13"></script>
+  <script src="/js/imageUpload.js?v=13"></script>
+  <script src="/js/form.js?v=13"></script>
+  <script src="/js/exports.js?v=13"></script>
+  <script src="/js/app.js?v=13"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ const { getLayoutsForSize, calculateLayout } = require('../services/layoutEngine
 const { checkResolution, getImageDimensions } = require('../services/resolutionChecker');
 const { validateBio } = require('../utils/textUtils');
 const { lookupHero, fetchGallery } = require('../services/heroLookup');
+const { generatePalette } = require('../services/paletteGenerator');
 
 // Multer config for image uploads
 const storage = multer.diskStorage({
@@ -228,7 +229,7 @@ router.post('/images/download-url', async (req, res) => {
           clearTimeout(timeout);
           return reject(new Error('Too many redirects'));
         }
-        const req = proto.get(reqUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0' } }, (response) => {
+        const req = proto.get(reqUrl, { headers: { 'User-Agent': 'HeroesLiveForever/1.0 (https://github.com/hdproductionsllc/heroesliveforever) Node.js' } }, (response) => {
           if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
             return request(response.headers.location, redirectCount + 1);
           }
@@ -365,6 +366,21 @@ router.post('/images/analyze-crop', async (req, res) => {
 router.post('/validate/bio', (req, res) => {
   const result = validateBio(req.body.text);
   res.json(result);
+});
+
+// POST /api/palette — AI-generated color palette for a hero
+router.post('/palette', async (req, res) => {
+  const { name, bio, category, imageUrl } = req.body || {};
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  try {
+    const palette = await generatePalette({ name, bio, category, imageUrl });
+    res.json(palette);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

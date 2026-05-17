@@ -11,6 +11,20 @@ window.Form = (function() {
   let _lookupCompleteCallbacks = [];
   let _lookupAbortController = null;
 
+  // Palette overrides — keyed by override id ('frameWood', 'matBg', 'bioBg',
+  // 'bioName', 'bioText', 'imageTint'). A missing key means "use theme default".
+  const colorOverrides = {};
+
+  // Maps each override id to the theme path it controls.
+  const OVERRIDE_PATHS = {
+    frameWood: ['frame', 'border'],
+    matBg:     ['mat', 'background'],
+    bioBg:     ['bio', 'background'],
+    bioName:   ['bio', 'nameColor'],
+    bioText:   ['bio', 'textColor'],
+    imageTint: ['image', 'tintOverride']
+  };
+
   // DOM references
   const els = {};
 
@@ -18,6 +32,7 @@ window.Form = (function() {
     onChangeCallback = onChange;
     cacheElements();
     setupListeners();
+    setupColorPickers();
     updateCascadingFields();
     updateLayoutOptions();
     updateWordCount();
@@ -199,13 +214,15 @@ window.Form = (function() {
   function updateLayoutOptions() {
     const frameSize = els.frameSize.value;
     const layoutMap = {
-      '8x10':  ['3-panel', '3-panel-right'],
-      '12.75x14.75': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'],
-      '12x16': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'],
-      '16x20': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right'],
-      '20x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'],
-      '24x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'],
-      '24x36': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '4-panel-alt']
+      '8x10':  ['3-panel', '3-panel-right', '2-panel', '2-panel-top'],
+      '11.75x14.75': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'],
+      '12.25x14.75': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'],
+      '12.75x14.75': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'],
+      '12x16': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '2-panel', '2-panel-top'],
+      '16x20': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '2-panel', '2-panel-top'],
+      '20x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '2-panel', '2-panel-top'],
+      '24x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '2-panel', '2-panel-top'],
+      '24x36': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top', '4-panel-alt', '2-panel', '2-panel-top']
     };
 
     const layouts = layoutMap[frameSize] || ['3-panel'];
@@ -213,6 +230,8 @@ window.Form = (function() {
     els.panelLayout.innerHTML = '';
 
     const labels = {
+      '2-panel': '2-Panel: Hero Left',
+      '2-panel-top': '2-Panel: Hero Top',
       '3-panel': '3-Panel: Hero Left',
       '3-panel-right': '3-Panel: Hero Right',
       '3-panel-top': '3-Panel: Hero Top',
@@ -465,9 +484,112 @@ window.Form = (function() {
     };
   }
 
+  // ── Palette Overrides ──────────────────────────────────────────────
+
+  /**
+   * Wire up the color picker rows. Each row has a <input type="color"> swatch
+   * and an "Auto" button that clears the override and reverts to the theme.
+   */
+  function setupColorPickers() {
+    const rows = document.querySelectorAll('.color-picker-row');
+    rows.forEach(row => {
+      const overrideId = row.dataset.override;
+      if (!overrideId) return;
+
+      const swatch = row.querySelector('.color-swatch');
+      const autoBtn = row.querySelector('.btn-auto');
+
+      // 'input' fires continuously during drag; 'change' fires on commit.
+      // We listen on 'input' so the preview updates live.
+      swatch.addEventListener('input', () => {
+        colorOverrides[overrideId] = swatch.value;
+        row.classList.add('is-active');
+        notifyChange();
+      });
+
+      autoBtn.addEventListener('click', () => {
+        delete colorOverrides[overrideId];
+        row.classList.remove('is-active');
+        notifyChange();
+      });
+    });
+  }
+
+  /**
+   * Sync each color picker swatch to the resolved theme value. Called by app.js
+   * after each theme resolve so the "Auto" baseline matches the active theme.
+   */
+  function syncPickersToTheme(theme) {
+    if (!theme) return;
+    for (const [overrideId, path] of Object.entries(OVERRIDE_PATHS)) {
+      const swatch = document.querySelector(`.color-swatch[data-override="${overrideId}"]`);
+      if (!swatch) continue;
+      // If there's no active override, reflect the theme's current value.
+      if (colorOverrides[overrideId] !== undefined) continue;
+
+      const themeValue = path.reduce((obj, key) => obj && obj[key], theme);
+      const hex = toHexColor(themeValue);
+      if (hex) swatch.value = hex;
+    }
+  }
+
+  /**
+   * Try to coerce a theme color into a #rrggbb hex for the native picker.
+   * The native input only accepts 7-char hex; gradients/rgb/named colors get
+   * a fallback so the swatch still renders something sensible.
+   */
+  function toHexColor(value) {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    // Already a 7-char hex
+    if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+    // 3-char hex → expand
+    const short = trimmed.match(/^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/);
+    if (short) return ('#' + short[1] + short[1] + short[2] + short[2] + short[3] + short[3]).toLowerCase();
+    // rgb()/rgba()
+    const rgb = trimmed.match(/^rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (rgb) {
+      const [r, g, b] = [+rgb[1], +rgb[2], +rgb[3]];
+      return '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0')).join('').toLowerCase();
+    }
+    // Gradient or unsupported — fall back so the picker still has a value
+    return '#222222';
+  }
+
+  /**
+   * Merge active palette overrides on top of the resolved theme. Returns a new
+   * theme object — never mutates the input. Themes that lack a particular
+   * subkey (e.g. an older theme without bio.nameColor) still get the override
+   * applied; that's intentional and harmless because the renderer reads these
+   * keys directly.
+   */
+  function applyOverrides(theme) {
+    if (!theme) return theme;
+    // Shallow clone nested objects we may touch
+    const result = {
+      ...theme,
+      frame: { ...(theme.frame || {}) },
+      mat:   { ...(theme.mat   || {}) },
+      bio:   { ...(theme.bio   || {}) },
+      image: { ...(theme.image || {}) }
+    };
+
+    if (colorOverrides.frameWood) result.frame.border = colorOverrides.frameWood;
+    if (colorOverrides.matBg)     result.mat.background = colorOverrides.matBg;
+    if (colorOverrides.bioBg)     result.bio.background = colorOverrides.bioBg;
+    if (colorOverrides.bioName)   result.bio.nameColor = colorOverrides.bioName;
+    if (colorOverrides.bioText)   result.bio.textColor = colorOverrides.bioText;
+    if (colorOverrides.imageTint) result.image.tintOverride = colorOverrides.imageTint;
+
+    return result;
+  }
+
   return {
     init,
     getData,
+    getColorOverrides() { return { ...colorOverrides }; },
+    applyOverrides,
+    syncPickersToTheme,
     getWikiTitle() { return heroWikiTitle; },
     getFullBio() { return fullBio; },
     isAutoPopulatedBio() { return isAutoPopulated; },

@@ -19,29 +19,50 @@ function calculateLayout(frameSize, layoutId) {
   if (!frame) throw new Error(`Unknown frame size: ${frameSize}`);
   if (!layout) throw new Error(`Unknown layout: ${layoutId}`);
 
-  const { frameBorder, matPadding, panelGap } = printDimensions;
+  const { panelGap } = printDimensions;
 
-  // Mat interior dimensions in inches (inside frame border and mat padding)
-  const matWidth = frame.width - (frameBorder * 2) - (matPadding * 2);
-  const matHeight = frame.height - (frameBorder * 2) - (matPadding * 2);
+  // Wood molding (frame face width) — per-frame override falls back to global.
+  const moldingIn = frame.molding !== undefined ? frame.molding : printDimensions.frameBorder;
 
-  // Calculate panel positions in inches
-  const inchPanels = calculatePanelPositions(layout, matWidth, matHeight, panelGap);
+  // Visible mat width — derived from print size when specified, else global default.
+  // Matches renderer.js logic: total padding = molding + visible mat.
+  let matInchesW, matInchesH;
+  if (frame.printW && frame.printH) {
+    matInchesW = Math.max(0, (frame.width - frame.printW) / 2 - moldingIn);
+    matInchesH = Math.max(0, (frame.height - frame.printH) / 2 - moldingIn);
+  } else {
+    matInchesW = matInchesH = printDimensions.matPadding;
+  }
+
+  // Mat interior — the area inside the molding AND visible mat where panels live.
+  const matWidth = frame.width - (moldingIn * 2) - (matInchesW * 2);
+  const matHeight = frame.height - (moldingIn * 2) - (matInchesH * 2);
+
+  // Panel gap rule: cap to mat thickness; hairline minimum for sleek/no-mat.
+  const minHairlineGap = 0.04; // ~2-3px at common preview scales
+  const gapCeilingW = matInchesW === 0 ? minHairlineGap : matInchesW;
+  const effectiveGap = Math.min(panelGap, gapCeilingW);
+
+  const inchPanels = calculatePanelPositions(layout, matWidth, matHeight, effectiveGap);
 
   // Preview dimensions
   const previewWidth = frame.previewWidth;
   const scale = previewWidth / frame.width;
   const previewHeight = Math.round(frame.height * scale);
 
-  // Preview mat area in pixels
-  const previewFrameBorder = frameBorder * scale;
-  const previewMatPadding = matPadding * scale;
-  const previewMatWidth = previewWidth - (previewFrameBorder * 2) - (previewMatPadding * 2);
-  const previewMatHeight = previewHeight - (previewFrameBorder * 2) - (previewMatPadding * 2);
-  const previewGap = panelGap * scale;
+  // Preview mat area in pixels — mirror the inch calculation
+  const previewMolding = moldingIn * scale;
+  const previewMatPadW = matInchesW * scale;
+  const previewMatPadH = matInchesH * scale;
+  const previewMatWidth = previewWidth - (previewMolding * 2) - (previewMatPadW * 2);
+  const previewMatHeight = previewHeight - (previewMolding * 2) - (previewMatPadH * 2);
+  const previewGap = effectiveGap * scale;
 
-  // Calculate pixel positions
   const pixelPanels = calculatePanelPositions(layout, previewMatWidth, previewMatHeight, previewGap);
+
+  // Print sheet dimensions — what's sent to the printer.
+  const printSheetW = frame.printW || +(frame.width - 2 * (moldingIn + matInchesW)).toFixed(2);
+  const printSheetH = frame.printH || +(frame.height - 2 * (moldingIn + matInchesH)).toFixed(2);
 
   return {
     frameSize,
@@ -61,12 +82,18 @@ function calculateLayout(frameSize, layoutId) {
       pixels: pixelPanels
     },
     dimensions: {
-      frameBorderPx: Math.round(previewFrameBorder),
-      matPaddingPx: Math.round(previewMatPadding),
+      frameBorderPx: Math.round(previewMolding),
+      matPaddingPx: Math.round(previewMatPadW),
+      matPaddingHeightPx: Math.round(previewMatPadH),
       gapPx: Math.round(previewGap),
-      frameBorderIn: frameBorder,
-      matPaddingIn: matPadding,
-      gapIn: panelGap
+      frameBorderIn: moldingIn,
+      moldingIn,
+      matPaddingIn: matInchesW,
+      matPaddingHeightIn: matInchesH,
+      gapIn: effectiveGap,
+      printSheetW,
+      printSheetH,
+      sleek: !!frame.sleek
     }
   };
 }

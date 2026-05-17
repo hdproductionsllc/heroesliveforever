@@ -6,19 +6,22 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #111;
-  --bg-surface: #1a1a1a;
-  --bg-input: #222;
-  --border: #2a2a2a;
-  --border-focus: #555;
-  --text: #ccc;
-  --text-muted: #777;
-  --text-dim: #555;
-  --accent: #c8a050;
-  --accent-hover: #d4b060;
-  --green: #4a9;
-  --yellow: #da4;
-  --red: #d55;
+  --bg: #0a0a0a;
+  --bg-surface: #161616;
+  --bg-input: #1c1c1c;
+  --border: #2e2e2e;
+  --border-focus: #6a6a6a;
+  --text: #e6e6e6;
+  --text-muted: #9a9a9a;
+  --text-dim: #6a6a6a;
+  --accent: #d81f2a;            /* MLB-bold sports red */
+  --accent-hover: #ef2a36;
+  --accent-soft: rgba(216, 31, 42, 0.12);
+  --accent-2: #ffd84d;           /* punchy broadcast yellow */
+  --display-font: 'Bebas Neue', 'Oswald', 'Archivo Black', Impact, sans-serif;
+  --green: #2ecc71;
+  --yellow: #f5c542;
+  --red: #ff4646;
   --sidebar-width: 400px;
 }
 
@@ -34,36 +37,64 @@ html, body {
 /* ═══ HEADER ═══ */
 
 #app-header {
-  height: 48px;
-  background: #0a0a0a;
-  border-bottom: 1px solid var(--border);
+  height: 56px;
+  background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+  border-bottom: 2px solid var(--accent);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 12px;
+  padding: 0 22px;
+  gap: 16px;
+  position: relative;
+}
+
+#app-header::after {
+  /* Thin highlight stripe just under the red border for a broadcast bar feel */
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
 }
 
 .brand {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 3px;
+  font-family: var(--display-font);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 6px;
   text-transform: uppercase;
-  color: var(--accent);
+  color: #fff;
+  line-height: 1;
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 32px;
+  height: 3px;
+  background: var(--accent);
 }
 
 .subtitle {
-  font-size: 10px;
-  letter-spacing: 2px;
+  font-family: var(--display-font);
+  font-size: 12px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: var(--accent-2);
+  margin-left: 12px;
+  padding-left: 14px;
+  border-left: 1px solid #2a2a2a;
 }
 
 /* ═══ WORKSPACE LAYOUT ═══ */
 
 #workspace {
   display: flex;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 56px);
 }
 
 /* ═══ SIDEBAR (Form) ═══ */
@@ -73,7 +104,7 @@ html, body {
   min-width: var(--sidebar-width);
   border-right: 1px solid var(--border);
   overflow-y: auto;
-  background: #141414;
+  background: #0f0f0f;
 }
 
 #sidebar::-webkit-scrollbar {
@@ -84,7 +115,7 @@ html, body {
 }
 #sidebar::-webkit-scrollbar-thumb {
   background: #333;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 #hero-form {
@@ -94,8 +125,8 @@ html, body {
 /* ═══ FORM SECTIONS ═══ */
 
 .form-section {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
   border-bottom: 1px solid #1e1e1e;
 }
 .form-section:last-child {
@@ -103,13 +134,26 @@ html, body {
 }
 
 .section-title {
-  font-size: 9px;
-  letter-spacing: 3px;
+  font-family: var(--display-font);
+  font-size: 16px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 12px;
+  color: #fff;
+  margin-bottom: 14px;
   font-weight: 400;
-  font-family: sans-serif;
+  position: relative;
+  padding-left: 10px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  background: var(--accent);
 }
 
 /* ═══ FORM FIELDS ═══ */
@@ -120,10 +164,12 @@ html, body {
 
 .field label {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   margin-bottom: 4px;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .checkbox-field label {
@@ -137,6 +183,7 @@ html, body {
   accent-color: var(--accent);
   width: 14px;
   height: 14px;
+  border-radius: 0;
 }
 
 .field-row {
@@ -153,19 +200,20 @@ select {
   width: 100%;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
   color: var(--text);
-  padding: 8px 10px;
+  padding: 9px 11px;
   font-size: 13px;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color 0.12s, box-shadow 0.12s;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: var(--border-focus);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
 }
 
 select {
@@ -222,22 +270,24 @@ textarea {
 
 .btn-lookup {
   flex-shrink: 0;
-  padding: 6px 12px;
-  background: rgba(200, 160, 80, 0.10);
+  padding: 8px 14px;
+  background: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 4px;
-  color: var(--accent);
-  font-size: 11px;
-  font-family: inherit;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  border-radius: 2px;
+  color: #fff;
+  font-family: var(--display-font);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.12s, transform 0.05s;
   white-space: nowrap;
 }
 .btn-lookup:hover {
-  background: rgba(200, 160, 80, 0.20);
-  color: #e0c070;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
 }
 .btn-lookup:active {
   transform: scale(0.97);
@@ -251,8 +301,8 @@ textarea {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(200, 160, 80, 0.3);
-  border-top-color: var(--accent);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -287,7 +337,7 @@ textarea {
 
 .drop-zone {
   border: 2px dashed var(--border);
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 20px;
   text-align: center;
   cursor: pointer;
@@ -298,7 +348,7 @@ textarea {
 .drop-zone:hover,
 .drop-zone.dragover {
   border-color: var(--accent);
-  background: rgba(200, 160, 80, 0.05);
+  background: var(--accent-soft);
 }
 .drop-zone.has-image {
   padding: 0;
@@ -326,7 +376,7 @@ textarea {
   height: 120px;
   object-fit: cover;
   display: block;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .image-meta {
@@ -372,17 +422,18 @@ textarea {
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0,0,0,0.75);
-  border: 1px solid rgba(200,160,80,0.4);
-  border-radius: 4px;
-  color: var(--accent);
-  font-size: 10px;
-  font-family: inherit;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  color: #fff;
+  font-family: var(--display-font);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   padding: 3px 10px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition: opacity 0.15s, background 0.15s;
   z-index: 2;
   white-space: nowrap;
 }
@@ -390,8 +441,8 @@ textarea {
   opacity: 1;
 }
 .btn-gallery:hover {
+  background: var(--accent);
   border-color: var(--accent);
-  background: rgba(0,0,0,0.9);
 }
 
 .image-gallery {
@@ -498,21 +549,23 @@ textarea {
 .btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 11px 14px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--bg-input);
   color: var(--text);
-  font-size: 12px;
-  font-family: inherit;
+  font-family: var(--display-font);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.12s;
 }
 .btn:hover {
   border-color: var(--accent);
-  background: rgba(200, 160, 80, 0.08);
-  color: var(--accent);
+  background: var(--accent-soft);
+  color: #fff;
 }
 .btn:disabled {
   opacity: 0.4;
@@ -522,12 +575,12 @@ textarea {
 .btn-icon {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: rgba(200, 160, 80, 0.12);
-  color: var(--accent);
-  font-family: monospace;
+  letter-spacing: 1px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Source Sans 3', monospace;
 }
 
 .export-status {
@@ -555,4 +608,97 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 24px;
+}
+
+/* ═══ PALETTE OVERRIDE (Color Pickers) ═══ */
+
+.color-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.color-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 36px 52px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.color-picker-row.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.color-picker-row label {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.color-picker-row.is-active label {
+  color: #fff;
+}
+
+/* Native color input — strip browser chrome, show only the swatch */
+.color-swatch {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 36px;
+  height: 24px;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.05s;
+}
+.color-swatch:hover {
+  border-color: var(--accent);
+}
+.color-swatch:active {
+  transform: scale(0.96);
+}
+.color-swatch::-webkit-color-swatch-wrapper { padding: 0; }
+.color-swatch::-webkit-color-swatch { border: none; border-radius: 0; }
+.color-swatch::-moz-color-swatch { border: none; border-radius: 0; }
+
+/* "Auto" reset button — compact, sports-broadcast accent on hover */
+.btn-auto {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text-muted);
+  font-family: var(--display-font);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.btn-auto:hover {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent-soft);
+}
+.btn-auto:disabled,
+.color-picker-row:not(.is-active) .btn-auto {
+  opacity: 0.55;
+  cursor: default;
+}
+.color-picker-row:not(.is-active) .btn-auto:hover {
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
 }

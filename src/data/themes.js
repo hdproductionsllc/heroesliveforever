@@ -1,239 +1,252 @@
 /**
  * Category themes — complete visual specs for each subject category.
- * CSS values extracted from the Tolkien prototype + production bible.
+ *
+ * Aesthetic: bold, modern, sports-broadcast — high contrast, solid colors,
+ * minimal sepia/aged tones. Think MLB.com / ESPN / Topps card / modern
+ * memorial brand. Each category keeps its own subject-appropriate voice
+ * but the visual language is uniformly contemporary and punchy.
+ *
+ * Structure per theme (do not add new top-level keys — downstream
+ * themeEngine.js merges `typography` and `accent` at resolve time):
+ *   frame   — outer painted/metal finish
+ *   mat     — solid surface surrounding the image
+ *   bio     — bio card panel (trading-card / stat-panel feel)
+ *   image   — image filter / opacity (kept sharp and modern)
+ *   caption — caption text + gradient over image
  */
 
 const themes = {
   military: {
     label: 'Military / Veterans',
+    // Brushed gunmetal / matte black frame — modern memorial, not aged oak.
     frame: {
-      border: 'linear-gradient(145deg, #2c2018, #3a2a1c 15%, #1e1610 40%, #2a1e14 70%, #1a120c)',
-      shadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 2px rgba(180,150,100,0.08)',
-      innerBorder: '#3a2a1a',
-      outerShadow: '#0a0806'
+      border: 'linear-gradient(145deg, #1f2622, #2a322c 15%, #131816 40%, #232a25 70%, #0d1110)',
+      shadow: '0 10px 44px rgba(0,0,0,0.72), 0 0 0 1px rgba(196,30,38,0.18)',
+      innerBorder: '#0a0d0c',
+      outerShadow: '#05070a'
     },
+    // Bone-white mat — high contrast against gunmetal frame. Memorial gravitas.
     mat: {
-      background: '#0a0908',
-      border: '#181410',
-      panelBorder: '#1a1610',
-      panelBg: '#12100c'
+      background: '#e8e3d6',
+      border: '#c8c2b1',
+      panelBorder: '#aaa494',
+      panelBg: '#f2ede0'
     },
+    // Bio panel: dark olive/charcoal with a sharp red service accent.
     bio: {
-      background: [
-        'radial-gradient(ellipse at 25% 20%, #ddd0b8 0%, transparent 60%)',
-        'radial-gradient(ellipse at 75% 80%, #c8b898 0%, transparent 60%)',
-        'linear-gradient(160deg, #d4c6aa 0%, #ccbda0 35%, #c4b494 65%, #bead8a 100%)'
-      ].join(', '),
-      nameColor: '#2c2014',
-      datesColor: '#6e5e4a',
-      textColor: '#3c3224',
-      quoteColor: '#3c3224',
-      attributionColor: '#7a6a54',
-      divider: 'linear-gradient(90deg, transparent, #8a7a5e, transparent)',
-      overlay: [
-        'radial-gradient(ellipse at 15% 10%, rgba(180,160,110,0.14) 0%, transparent 45%)',
-        'radial-gradient(ellipse at 85% 90%, rgba(120,100,60,0.1) 0%, transparent 45%)'
-      ].join(', ')
+      background: 'linear-gradient(160deg, #1a1f1c 0%, #14181a 60%, #0e1213 100%)',
+      nameColor: '#f5f3ec',
+      datesColor: '#8a948b',
+      textColor: '#d6d8d2',
+      quoteColor: '#ffffff',
+      attributionColor: '#9aa49a',
+      divider: 'linear-gradient(90deg, transparent, #c41e26, transparent)',
+      overlay: 'none'
     },
     image: {
-      filter: 'sepia(0.12) contrast(1.08)',
-      opacity: 0.92,
-      secondaryFilter: 'sepia(0.25) contrast(1.05) brightness(0.88)',
-      secondaryOpacity: 0.9
+      filter: 'contrast(1.08) saturate(1.04) brightness(0.98)',
+      opacity: 1,
+      secondaryFilter: 'contrast(1.06) saturate(1.0) brightness(0.96)',
+      secondaryOpacity: 0.97
     },
     caption: {
-      color: '#5a4a3a',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.9))'
+      color: '#c8ccc4',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.92))'
     }
   },
 
   sports: {
     label: 'Sports Legends',
+    // Glossy black painted frame with a thin red broadcast halo.
     frame: {
-      border: 'linear-gradient(145deg, #1a1a1a, #2a2a2a 15%, #111 40%, #222 70%, #0a0a0a)',
-      shadow: '0 8px 40px rgba(0,0,0,0.7), 0 0 3px rgba(255,255,255,0.05)',
-      innerBorder: '#333',
-      outerShadow: '#000'
+      border: 'linear-gradient(145deg, #141414, #1f1f1f 15%, #050505 40%, #1a1a1a 70%, #000000)',
+      shadow: '0 12px 48px rgba(0,0,0,0.82), 0 0 0 1px rgba(196,30,38,0.35)',
+      innerBorder: '#000000',
+      outerShadow: '#000000'
     },
+    // Cardinals-red mat — bold broadcast color block.
     mat: {
-      background: '#0a0a0a',
-      border: '#1a1a1a',
-      panelBorder: '#222',
-      panelBg: '#111'
+      background: '#a3122a',
+      border: '#6b0a1a',
+      panelBorder: '#7a0d20',
+      panelBg: '#0a0a0a'
     },
+    // Trading-card stat panel: bone white, jet black numerals, red accent.
     bio: {
-      background: 'linear-gradient(160deg, #f8f6f2 0%, #f0ece4 50%, #e8e2d8 100%)',
-      nameColor: '#111',
-      datesColor: '#555',
-      textColor: '#222',
-      quoteColor: '#333',
-      attributionColor: '#666',
-      divider: 'linear-gradient(90deg, transparent, #999, transparent)',
+      background: 'linear-gradient(160deg, #ffffff 0%, #f4f4f4 100%)',
+      nameColor: '#0a0a0a',
+      datesColor: '#a3122a',
+      textColor: '#1a1a1a',
+      quoteColor: '#0a0a0a',
+      attributionColor: '#a3122a',
+      divider: 'linear-gradient(90deg, transparent, #0a0a0a 20%, #a3122a 50%, #0a0a0a 80%, transparent)',
       overlay: 'none'
     },
     image: {
-      filter: 'contrast(1.1) saturate(1.05)',
+      filter: 'contrast(1.18) saturate(1.22) brightness(1.02)',
       opacity: 1,
-      secondaryFilter: 'contrast(1.05)',
-      secondaryOpacity: 0.95
+      secondaryFilter: 'contrast(1.15) saturate(1.18)',
+      secondaryOpacity: 1
     },
     caption: {
-      color: '#888',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))'
+      color: '#f4f4f4',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.92))'
     }
   },
 
   historical: {
     label: 'Historical Figures',
+    // Matte black frame with a thin warm bronze hairline — NYT retrospective.
     frame: {
-      border: 'linear-gradient(145deg, #4a1e14, #5c2a1c 15%, #3a1610 40%, #4a2014 70%, #2e120c)',
-      shadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 2px rgba(200,160,80,0.1)',
-      innerBorder: '#5a3020',
-      outerShadow: '#1a0a06'
+      border: 'linear-gradient(145deg, #1a1a1a, #232323 15%, #0c0c0c 40%, #1d1d1d 70%, #050505)',
+      shadow: '0 10px 44px rgba(0,0,0,0.7), 0 0 0 1px rgba(184,138,73,0.22)',
+      innerBorder: '#0a0a0a',
+      outerShadow: '#000000'
     },
+    // Bone editorial mat — NYT retrospective contrast against matte black frame.
     mat: {
-      background: '#1a0a0a',
-      border: '#2a1410',
-      panelBorder: '#2e1a14',
-      panelBg: '#1a100c'
+      background: '#f0ebde',
+      border: '#1a1a1a',
+      panelBorder: '#1f1f1f',
+      panelBg: '#0a0a0a'
     },
+    // Bone-white editorial card, black serif name, bronze accent rule.
     bio: {
-      background: [
-        'radial-gradient(ellipse at 30% 25%, #f8f2ea 0%, transparent 60%)',
-        'linear-gradient(160deg, #f5f0e6 0%, #efe8dc 50%, #e8e0d0 100%)'
-      ].join(', '),
-      nameColor: '#2a1a10',
-      datesColor: '#7a6650',
-      textColor: '#3a2a1c',
-      quoteColor: '#3a2a1c',
-      attributionColor: '#8a7660',
-      divider: 'linear-gradient(90deg, transparent, #b8a080, transparent)',
-      overlay: 'radial-gradient(ellipse at 20% 15%, rgba(200,180,140,0.08) 0%, transparent 50%)'
+      background: '#f7f4ec',
+      nameColor: '#0a0a0a',
+      datesColor: '#7a6a4e',
+      textColor: '#1c1c1c',
+      quoteColor: '#0a0a0a',
+      attributionColor: '#8a7a5e',
+      divider: 'linear-gradient(90deg, transparent, #b88a49, transparent)',
+      overlay: 'none'
     },
     image: {
-      filter: 'sepia(0.08) contrast(1.05) brightness(0.95)',
-      opacity: 0.95,
-      secondaryFilter: 'sepia(0.15) contrast(1.05) brightness(0.9)',
-      secondaryOpacity: 0.92
+      filter: 'contrast(1.12) saturate(1.02) brightness(0.99)',
+      opacity: 1,
+      secondaryFilter: 'contrast(1.08) saturate(1.0) brightness(0.97)',
+      secondaryOpacity: 0.98
     },
     caption: {
-      color: '#6a5a4a',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))'
+      color: '#d8d2c4',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.9))'
     }
   },
 
   national: {
     label: 'National Heroes / Heads of State',
+    // Deep navy painted frame, brushed.
     frame: {
-      border: 'linear-gradient(145deg, #1a1a1a, #2a2a28 15%, #141414 40%, #222220 70%, #0e0e0e)',
-      shadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 2px rgba(200,180,120,0.08)',
-      innerBorder: '#333',
-      outerShadow: '#080808'
+      border: 'linear-gradient(145deg, #0d1730, #142142 15%, #070d1e 40%, #111c38 70%, #04081a)',
+      shadow: '0 12px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(196,30,38,0.25)',
+      innerBorder: '#04081a',
+      outerShadow: '#02040d'
     },
+    // Cream mat — patriotic navy + cream + red palette. High contrast.
     mat: {
-      background: '#0c0c14',
-      border: '#181820',
-      panelBorder: '#1c1c24',
-      panelBg: '#12121a'
+      background: '#f4ebd0',
+      border: '#d4c9a7',
+      panelBorder: '#a89c79',
+      panelBg: '#fbf5e2'
     },
+    // Cream card with navy name, red accent divider — modern civic plaque.
     bio: {
-      background: 'linear-gradient(160deg, #faf8f5 0%, #f5f2ee 50%, #f0ece6 100%)',
-      nameColor: '#1a1a1a',
-      datesColor: '#666',
-      textColor: '#2a2a2a',
-      quoteColor: '#333',
-      attributionColor: '#777',
-      divider: 'linear-gradient(90deg, transparent, #aaa, transparent)',
+      background: 'linear-gradient(160deg, #fbf7ec 0%, #f3eddc 100%)',
+      nameColor: '#0a1430',
+      datesColor: '#8a6a3c',
+      textColor: '#13192a',
+      quoteColor: '#0a1430',
+      attributionColor: '#7a6850',
+      divider: 'linear-gradient(90deg, transparent, #c41e26, transparent)',
       overlay: 'none'
     },
     image: {
-      filter: 'contrast(1.05) brightness(0.97)',
-      opacity: 0.95,
-      secondaryFilter: 'contrast(1.03) brightness(0.95)',
-      secondaryOpacity: 0.93
+      filter: 'contrast(1.1) saturate(1.08) brightness(1.0)',
+      opacity: 1,
+      secondaryFilter: 'contrast(1.06) saturate(1.04)',
+      secondaryOpacity: 0.98
     },
     caption: {
-      color: '#777',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))'
+      color: '#e6e0cc',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.9))'
     }
   },
 
   music: {
     label: 'Music / Arts / Culture',
+    // Pure black concert-poster frame with a neon-yellow hairline.
     frame: {
-      border: 'linear-gradient(145deg, #1a1a1a, #252525 15%, #101010 40%, #1e1e1e 70%, #0a0a0a)',
-      shadow: '0 8px 40px rgba(0,0,0,0.7), 0 0 3px rgba(200,170,80,0.06)',
-      innerBorder: '#2a2a2a',
-      outerShadow: '#050505'
+      border: 'linear-gradient(145deg, #0a0a0a, #161616 15%, #000000 40%, #121212 70%, #000000)',
+      shadow: '0 12px 50px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,221,0,0.32)',
+      innerBorder: '#000000',
+      outerShadow: '#000000'
     },
+    // Neon yellow mat — pure concert-poster impact against black frame.
     mat: {
-      background: '#080808',
-      border: '#151515',
-      panelBorder: '#1a1a1a',
-      panelBg: '#0e0e0e'
+      background: '#ffdd00',
+      border: '#d4b800',
+      panelBorder: '#9c8800',
+      panelBg: '#fff14a'
     },
+    // Black card, white name, neon-yellow accent — gig-poster energy.
     bio: {
-      background: 'linear-gradient(160deg, #1a1a1a 0%, #151515 50%, #111 100%)',
-      nameColor: '#f0e8d8',
-      datesColor: '#8a8070',
-      textColor: '#c8c0b0',
-      quoteColor: '#d8d0c0',
-      attributionColor: '#7a7268',
-      divider: 'linear-gradient(90deg, transparent, #c8a050, transparent)',
+      background: '#0a0a0a',
+      nameColor: '#ffffff',
+      datesColor: '#ffdd00',
+      textColor: '#e6e6e6',
+      quoteColor: '#ffffff',
+      attributionColor: '#ffdd00',
+      divider: 'linear-gradient(90deg, transparent, #ffdd00, transparent)',
       overlay: 'none'
     },
     image: {
-      filter: 'contrast(1.1) brightness(0.95)',
-      opacity: 0.95,
-      secondaryFilter: 'contrast(1.08) brightness(0.92)',
-      secondaryOpacity: 0.92
+      filter: 'contrast(1.18) saturate(1.18) brightness(0.98)',
+      opacity: 1,
+      secondaryFilter: 'contrast(1.14) saturate(1.14) brightness(0.96)',
+      secondaryOpacity: 0.98
     },
     caption: {
-      color: '#888',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.9))'
+      color: '#ffdd00',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.95))'
     }
   },
 
   personal: {
     label: 'Personal Heroes',
+    // Warm dark walnut-painted finish — minimal, contemporary.
     frame: {
-      border: 'linear-gradient(145deg, #3a2a1a, #4a3828 15%, #2e2018 40%, #3c2c1e 70%, #241a10)',
-      shadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 2px rgba(180,150,100,0.1)',
-      innerBorder: '#4a3a2a',
-      outerShadow: '#0c0a06'
+      border: 'linear-gradient(145deg, #1f1814, #2a221c 15%, #15110d 40%, #241c16 70%, #0d0a07)',
+      shadow: '0 10px 42px rgba(0,0,0,0.62), 0 0 0 1px rgba(212,140,56,0.22)',
+      innerBorder: '#100c08',
+      outerShadow: '#070504'
     },
+    // Warm cream mat — high contrast against walnut frame, modern home gallery.
     mat: {
-      background: '#141210',
-      border: '#1e1a16',
-      panelBorder: '#221e1a',
-      panelBg: '#181410'
+      background: '#e8dcc4',
+      border: '#c9bda3',
+      panelBorder: '#a89977',
+      panelBg: '#f3eada'
     },
+    // Off-white card, near-black name, amber accent.
     bio: {
-      background: [
-        'radial-gradient(ellipse at 25% 20%, #e8dcc8 0%, transparent 60%)',
-        'radial-gradient(ellipse at 75% 80%, #d8ccb4 0%, transparent 60%)',
-        'linear-gradient(160deg, #dcd0b8 0%, #d4c8ae 50%, #ccbea4 100%)'
-      ].join(', '),
-      nameColor: '#2e2014',
-      datesColor: '#70604c',
-      textColor: '#3e3226',
-      quoteColor: '#3e3226',
-      attributionColor: '#7c6c58',
-      divider: 'linear-gradient(90deg, transparent, #a09070, transparent)',
-      overlay: [
-        'radial-gradient(ellipse at 15% 10%, rgba(180,160,120,0.1) 0%, transparent 45%)',
-        'radial-gradient(ellipse at 85% 90%, rgba(140,120,80,0.08) 0%, transparent 45%)'
-      ].join(', ')
+      background: 'linear-gradient(160deg, #fbf8f2 0%, #f3ede1 100%)',
+      nameColor: '#1a140e',
+      datesColor: '#8a6a3c',
+      textColor: '#2a221a',
+      quoteColor: '#1a140e',
+      attributionColor: '#8a6a3c',
+      divider: 'linear-gradient(90deg, transparent, #d48c38, transparent)',
+      overlay: 'none'
     },
     image: {
-      filter: 'sepia(0.06) contrast(1.04) brightness(0.98)',
-      opacity: 0.94,
-      secondaryFilter: 'sepia(0.1) contrast(1.03) brightness(0.95)',
-      secondaryOpacity: 0.92
+      filter: 'contrast(1.08) saturate(1.06) brightness(1.0)',
+      opacity: 1,
+      secondaryFilter: 'contrast(1.05) saturate(1.04) brightness(0.98)',
+      secondaryOpacity: 0.98
     },
     caption: {
-      color: '#6a5a4a',
-      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))'
+      color: '#e6dccc',
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.88))'
     }
   }
 };

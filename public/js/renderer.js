@@ -17,17 +17,32 @@ window.Renderer = (function() {
 
   // Frame size configs (same as server)
   const frameSizes = {
-    '8x10':  { w: 8,  h: 10, pw: 340 },
-    '12.75x14.75': { w: 12.75, h: 14.75, pw: 440, printW: 8, printH: 10 },
-    '12x16': { w: 12, h: 16, pw: 400 },
-    '16x20': { w: 16, h: 20, pw: 480 },
-    '20x24': { w: 20, h: 24, pw: 540 },
-    '24x24': { w: 24, h: 24, pw: 620 },
-    '24x36': { w: 24, h: 36, pw: 500 }
+    '8x10':  { w: 8,  h: 10, pw: 340, molding: 0.75 },
+    '11.75x14.75': { w: 11.75, h: 14.75, pw: 415, printW: 11, printH: 14, molding: 0.75, sleek: true },
+    '12.25x14.75': { w: 12.25, h: 14.75, pw: 425, printW: 8.5, printH: 11, molding: 0.75 },
+    '12.75x14.75': { w: 12.75, h: 14.75, pw: 440, printW: 8, printH: 10, molding: 0.75 },
+    '12x16': { w: 12, h: 16, pw: 400, molding: 0.75 },
+    '16x20': { w: 16, h: 20, pw: 480, molding: 0.75 },
+    '20x24': { w: 20, h: 24, pw: 540, molding: 0.75 },
+    '24x24': { w: 24, h: 24, pw: 620, molding: 0.75 },
+    '24x36': { w: 24, h: 36, pw: 500, molding: 0.75 }
   };
 
   // Layout grid configs — must match server-side layouts.js
   const layoutGrids = {
+    // 2-panel variants
+    '2-panel': {
+      columns: '1.3fr 1fr',
+      rows: '1fr',
+      areas: '"hero bio"',
+      panels: ['hero', 'bio']
+    },
+    '2-panel-top': {
+      columns: '1fr',
+      rows: '1.5fr 1fr',
+      areas: '"hero" "bio"',
+      panels: ['hero', 'bio']
+    },
     // 3-panel variants
     '3-panel': {
       columns: '1.15fr 1fr',
@@ -120,30 +135,56 @@ window.Renderer = (function() {
     const previewHeight = Math.round(fs.pw * (fs.h / fs.w));
     const scale = previewWidth / 620; // Scale relative to 24x24 reference
 
-    // Frame border width scales with preview
-    const frameBorderW = Math.round(14 * scale);
-    const panelGap = Math.round(10 * scale);
-
-    // Mat padding: if a target print size is specified, mat sizes to fit it.
-    // Otherwise fall back to the aesthetic default that scales with frame size.
     const pxPerIn = previewWidth / fs.w;
-    let matPadding;
-    let matInchesW, matInchesH;
-    if (fs.printW && fs.printH) {
-      matInchesW = (fs.w - fs.printW) / 2;
-      matInchesH = (fs.h - fs.printH) / 2;
-      // Use the width axis to compute padding (square mat assumption for symmetric frames)
-      const totalPadPx = Math.round(matInchesW * pxPerIn);
-      matPadding = Math.max(0, totalPadPx - frameBorderW);
+
+    // Wood molding (face width) — explicit if specified, otherwise a legacy
+    // aesthetic value that scales with frame size.
+    const moldingIn = fs.molding !== undefined ? fs.molding : (14 * scale) / pxPerIn;
+    const frameBorderW = Math.round(moldingIn * pxPerIn);
+
+    // Three frame modes:
+    //  1. Faux mat — mat is printed onto the sheet; sheet fills inner opening.
+    //  2. Real mat with target print size — mat board fills the gap.
+    //  3. Legacy aesthetic mat that scales with frame size.
+    const isFauxMat = !!fs.fauxMat;
+
+    let matPadding;            // visible mat in pixels (excludes molding)
+    let matInchesW, matInchesH; // visible mat in inches (excludes molding)
+    if (isFauxMat) {
+      matInchesW = matInchesH = fs.fauxMat;
+      matPadding = Math.round(fs.fauxMat * pxPerIn);
+    } else if (fs.printW && fs.printH) {
+      // Total padding from outer edge to print = molding + visible mat
+      matInchesW = Math.max(0, (fs.w - fs.printW) / 2 - moldingIn);
+      matInchesH = Math.max(0, (fs.h - fs.printH) / 2 - moldingIn);
+      matPadding = Math.round(matInchesW * pxPerIn);
     } else {
       matPadding = Math.round(18 * scale);
-      const visibleMatIn = (frameBorderW + matPadding) / pxPerIn;
-      matInchesW = matInchesH = visibleMatIn;
+      matInchesW = matInchesH = matPadding / pxPerIn;
     }
 
-    // Derived print sheet dimensions (what gets printed inside the mat)
-    const printW = fs.printW || +(fs.w - 2 * matInchesW).toFixed(2);
-    const printH = fs.printH || +(fs.h - 2 * matInchesH).toFixed(2);
+    // Print sheet dimensions (what gets sent to the printer)
+    let printW, printH;
+    if (isFauxMat) {
+      printW = +(fs.w - 2 * moldingIn).toFixed(2);
+      printH = +(fs.h - 2 * moldingIn).toFixed(2);
+    } else {
+      printW = fs.printW || +(fs.w - 2 * (moldingIn + matInchesW)).toFixed(2);
+      printH = fs.printH || +(fs.h - 2 * (moldingIn + matInchesH)).toFixed(2);
+    }
+
+    // Inner artwork — only distinct from print sheet when faux mat is in use
+    const innerW = isFauxMat ? +(printW - 2 * fs.fauxMat).toFixed(2) : printW;
+    const innerH = isFauxMat ? +(printH - 2 * fs.fauxMat).toFixed(2) : printH;
+
+    // Panel gap rule: inter-panel gap should not exceed the outer mat thickness,
+    // EXCEPT when the mat is 0 (sleek/no-mat) — in that case a hairline gap is
+    // still needed to read as intentional separation, not one solid piece.
+    // Aesthetic default is ~10*scale px; cap at matPadding (or minHairline for sleek).
+    const idealGap = Math.round(10 * scale);
+    const minHairlineGap = Math.max(2, Math.round(4 * scale));
+    const gapCeiling = matPadding === 0 ? minHairlineGap : matPadding;
+    const panelGap = Math.min(idealGap, gapCeiling);
     const fmt = n => {
       const s = (Math.round(n * 100) / 100).toString();
       return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
@@ -181,11 +222,10 @@ window.Renderer = (function() {
       height: previewHeight + 'px',
       border: `${frameBorderW}px solid`,
       borderImage: `${theme.frame.border} 1`,
-      boxShadow: [
-        `inset 0 0 0 2px ${theme.frame.innerBorder}`,
-        `inset 0 0 0 4px ${theme.frame.outerShadow}`,
-        theme.frame.shadow
-      ].join(', '),
+      // Drop the inset decorative rings — they were tuned for dark mats and now
+      // show as visible color stripes inside lighter mats. Mat color must read
+      // uniformly from wood edge to panel edge.
+      boxShadow: theme.frame.shadow,
       background: theme.mat.background,
       padding: matPadding + 'px'
     });
@@ -198,7 +238,8 @@ window.Renderer = (function() {
     const mat = el('div', { class: 'mat' }, null, {
       width: '100%',
       height: '100%',
-      border: `1px solid ${theme.mat.border}`,
+      background: theme.mat.background,
+      border: `1px solid ${theme.mat.background}`,
       display: 'grid',
       gridTemplateColumns: colValues.map(v => v + 'fr').join(' '),
       gridTemplateRows: rowValues.map(v => v + 'fr').join(' '),
@@ -220,20 +261,33 @@ window.Renderer = (function() {
     frame.appendChild(mat);
     frameWrap.appendChild(frame);
 
-    // Side dimension — outer height
-    const dimSide = el('div', { class: 'dim-side' }, `${fs.h} in`);
+    // Side dimension — outer height (vertical lines flank the rotated text)
+    const dimSide = el('div', {
+      class: 'dim-side',
+      style: `height: ${previewHeight}px`
+    });
+    dimSide.appendChild(el('span', { class: 'dim-text' }, `${fs.h} in`));
     frameWrap.appendChild(dimSide);
 
-    // Print dimension (side) — height of the printed sheet inside the mat
-    const dimSidePrint = el('div', { class: 'dim-side dim-side--print' }, `${fmt(printH)} in print`);
+    // Print dimension (side) — height of the printed sheet
+    const printPxH = Math.round(printH * pxPerIn);
+    const dimSidePrint = el('div', {
+      class: 'dim-side dim-side--print',
+      style: `height: ${printPxH}px`
+    });
+    dimSidePrint.appendChild(el('span', { class: 'dim-text' }, `${fmt(printH)} in print`));
     frameWrap.appendChild(dimSidePrint);
 
     container.appendChild(frameWrap);
 
-    // Caption strip — full breakdown
-    const breakdown = el('div', { class: 'preview-breakdown' },
-      `Outer ${fs.w} × ${fs.h} in  ·  Mat ${fmt(matInchesW)} in${matInchesW !== matInchesH ? ` (${fmt(matInchesH)} in vertical)` : ''}  ·  Print sheet ${fmt(printW)} × ${fmt(printH)} in`
-    );
+    // Caption strip — full breakdown (different for faux vs real mat)
+    const matLabel = matInchesW !== matInchesH
+      ? `${fmt(matInchesW)} × ${fmt(matInchesH)} in`
+      : `${fmt(matInchesW)} in`;
+    const breakdownText = isFauxMat
+      ? `Outer ${fs.w} × ${fs.h} in  ·  Frame face ${fmt(moldingIn)} in  ·  Print sheet ${fmt(printW)} × ${fmt(printH)} in  ·  Faux mat ${matLabel} (printed)  ·  Inner artwork ${fmt(innerW)} × ${fmt(innerH)} in`
+      : `Outer ${fs.w} × ${fs.h} in  ·  Frame face ${fmt(moldingIn)} in  ·  Mat ${matLabel}  ·  Print ${fmt(printW)} × ${fmt(printH)} in`;
+    const breakdown = el('div', { class: 'preview-breakdown' }, breakdownText);
     container.appendChild(breakdown);
 
     // Fire post-render callbacks (e.g. to reattach drag-drop listeners)
@@ -248,7 +302,7 @@ window.Renderer = (function() {
   function buildImagePanel(panelId, theme, images, heroData, scale) {
     const panel = el('div', { class: 'panel', 'data-panel': panelId }, null, {
       gridArea: gridAreaMap[panelId] || panelId,
-      border: `1px solid ${theme.mat.panelBorder}`,
+      border: `1px solid ${theme.mat.background}`,
       overflow: 'hidden',
       position: 'relative',
       background: theme.mat.panelBg
@@ -273,6 +327,21 @@ window.Renderer = (function() {
       ].join('; ');
 
       panel.appendChild(img);
+
+      // Optional image tint overlay — driven by palette override only.
+      // Themes don't set this; it only appears when the user picks a tint.
+      if (theme.image && theme.image.tintOverride) {
+        const tint = document.createElement('div');
+        tint.style.cssText = [
+          'position: absolute',
+          'inset: 0',
+          `background: ${theme.image.tintOverride}`,
+          'mix-blend-mode: multiply',
+          'opacity: 0.35',
+          'pointer-events: none'
+        ].join('; ');
+        panel.appendChild(tint);
+      }
     } else {
       // Placeholder
       const ph = el('div', { class: 'placeholder' }, panelId.toUpperCase());
@@ -312,7 +381,7 @@ window.Renderer = (function() {
 
     const panel = el('div', { class: 'panel', 'data-panel': panelId }, null, {
       gridArea: gridAreaMap[panelId] || panelId,
-      border: `1px solid ${theme.mat.panelBorder}`,
+      border: `1px solid ${theme.mat.background}`,
       overflow: 'hidden',
       position: 'relative',
       background: bio.background,
