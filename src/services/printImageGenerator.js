@@ -90,6 +90,10 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
     });
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
 
+    // Ensure all web fonts are loaded before screenshot — otherwise glyphs
+    // get rasterized as fallback fonts.
+    await page.evaluate(() => document.fonts.ready);
+
     // Strip frame border and mat border, scale content to fill print area
     await page.evaluate((pageW, pageH, bleedPx, matPaddingPx) => {
       // Remove preview-only elements
@@ -148,16 +152,17 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
       frameWrap.style.overflow = 'hidden';
     }, cssWidth, cssHeight, Math.round(bleed * 96), Math.round(matWidthIn * 96));
 
-    // Take screenshot as PNG
+    // Take screenshot as raw PNG, then encode to JPG with sharp.
+    // JPG at quality 92 is visually indistinguishable from lossless and
+    // produces files ~5-10x smaller — the right format for print labs.
     const screenshotBuffer = await page.screenshot({
       type: 'png',
       clip: { x: 0, y: 0, width: cssWidth, height: cssHeight }
     });
 
-    // Embed DPI metadata with sharp
     await sharp(screenshotBuffer)
       .withMetadata({ density: actualDpi })
-      .png()
+      .jpeg({ quality: 92, chromaSubsampling: '4:4:4', mozjpeg: true })
       .toFile(outputPath);
 
     return {

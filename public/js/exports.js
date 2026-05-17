@@ -10,7 +10,7 @@ window.Exports = (function() {
 
     document.getElementById('btn-export-pdf').addEventListener('click', exportDesignPdf);
     document.getElementById('btn-export-html').addEventListener('click', exportHtml);
-    document.getElementById('btn-export-print-image').addEventListener('click', exportPrintImage);
+    document.getElementById('btn-export-print-jpg').addEventListener('click', exportPrintJpg);
     document.getElementById('btn-export-spec-sheet').addEventListener('click', exportSpecSheet);
   }
 
@@ -81,18 +81,18 @@ window.Exports = (function() {
     }
   }
 
-  async function exportPrintImage() {
+  async function exportPrintJpg() {
     const heroData = getHeroDataFn();
     if (!heroData.name) {
       showStatus('Enter a hero name first', 'error');
       return;
     }
 
-    showStatus('Generating print-ready PNG (this may take a moment)...', 'loading');
+    showStatus('Generating print-ready JPG (this may take a moment)...', 'loading');
     try {
       const rendererHtml = Renderer.getPreviewHtml();
 
-      const res = await fetch('/api/exports/print-image', {
+      const res = await fetch('/api/exports/print-jpg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ heroData, rendererHtml })

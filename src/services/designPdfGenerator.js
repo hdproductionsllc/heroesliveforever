@@ -55,8 +55,16 @@ async function generateDesignPdf(heroData, rendererHtml, outputPath) {
   try {
     const page = await browser.newPage();
 
-    await page.setViewport({ width: cssWidth, height: cssHeight });
+    // Higher device scale factor → sharper raster output for any rasterized
+    // sections. Vector text in the PDF is unaffected (always crisp), but
+    // images and CSS effects benefit. 2x is a sensible balance of quality
+    // and file size.
+    await page.setViewport({ width: cssWidth, height: cssHeight, deviceScaleFactor: 2 });
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+
+    // Ensure all web fonts (Bebas Neue, etc.) are fully loaded before
+    // capture — otherwise glyphs render as fallback fonts in the PDF.
+    await page.evaluate(() => document.fonts.ready);
 
     // Strip the frame border, fix aspect ratio, and scale to fill print page
     await page.evaluate((pageW, pageH) => {
@@ -119,7 +127,13 @@ async function generateDesignPdf(heroData, rendererHtml, outputPath) {
       height: `${matHeightIn}in`,
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      // Print-quality settings: vector graphics + fonts stay sharp at any zoom.
+      // tagged: false skips accessibility metadata that print operators ignore
+      // and inflates file size. outline: false drops document outline.
+      tagged: false,
+      outline: false,
+      displayHeaderFooter: false
     });
 
     return { path: outputPath, matWidth: matWidthIn, matHeight: matHeightIn };

@@ -156,8 +156,8 @@ router.post('/html', async (req, res) => {
   }
 });
 
-// POST /api/exports/print-image — generate high-res print PNG
-router.post('/print-image', async (req, res) => {
+// POST /api/exports/print-jpg — generate high-res print JPG (for consumer photo labs)
+router.post('/print-jpg', async (req, res) => {
   try {
     const { heroData, rendererHtml } = req.body;
 
@@ -177,7 +177,7 @@ router.post('/print-image', async (req, res) => {
     }
 
     const safeName = (heroData.name || 'hero').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    const filename = `${safeName}_${heroData.frameSize}_print_${Date.now()}.png`;
+    const filename = `${safeName}_${heroData.frameSize}_print_${Date.now()}.jpg`;
     const outputPath = path.join(__dirname, '..', '..', 'output', 'print', filename);
 
     const result = await generatePrintImage(heroData, rendererHtml, outputPath);
@@ -237,7 +237,11 @@ router.get('/download/:type/:filename', (req, res) => {
     jsx: 'application/javascript',
     pdf: 'application/pdf',
     html: 'text/html',
-    print: filename.endsWith('.png') ? 'image/png' : 'application/pdf'
+    print: filename.endsWith('.jpg') || filename.endsWith('.jpeg')
+      ? 'image/jpeg'
+      : filename.endsWith('.png')
+        ? 'image/png'
+        : 'application/pdf'
   };
 
   res.setHeader('Content-Type', contentTypes[type]);
