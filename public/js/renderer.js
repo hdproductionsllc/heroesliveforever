@@ -18,6 +18,7 @@ window.Renderer = (function() {
   // Frame size configs (same as server)
   const frameSizes = {
     '8x10':  { w: 8,  h: 10, pw: 340 },
+    '12.75x14.75': { w: 12.75, h: 14.75, pw: 440 },
     '12x16': { w: 12, h: 16, pw: 400 },
     '16x20': { w: 16, h: 20, pw: 480 },
     '20x24': { w: 20, h: 24, pw: 540 },

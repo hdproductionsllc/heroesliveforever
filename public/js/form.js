@@ -200,6 +200,7 @@ window.Form = (function() {
     const frameSize = els.frameSize.value;
     const layoutMap = {
       '8x10':  ['3-panel', '3-panel-right'],
+      '12.75x14.75': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'],
       '12x16': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'],
       '16x20': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right'],
       '20x24': ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'],
