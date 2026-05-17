@@ -51,6 +51,36 @@
   font-family: sans-serif;
 }
 
+/* Print sub-dimension (side, smaller) */
+.dim-side--print {
+  right: -120px;
+  color: #888;
+  font-size: 9px;
+  font-style: italic;
+}
+
+/* Print sub-dimension (top, smaller, centered on print width) */
+.dim-label--print {
+  margin: 4px auto 0;
+  color: #888;
+  font-size: 9px;
+  font-style: italic;
+}
+.dim-label--print::before,
+.dim-label--print::after {
+  background: #aaa;
+}
+
+/* Breakdown caption below frame */
+.preview-breakdown {
+  margin-top: 14px;
+  font-family: sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #555;
+  text-align: center;
+}
+
 /* Mat panel shared */
 .panel {
   overflow: hidden;

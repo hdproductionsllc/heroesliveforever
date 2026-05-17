@@ -18,7 +18,7 @@ window.Renderer = (function() {
   // Frame size configs (same as server)
   const frameSizes = {
     '8x10':  { w: 8,  h: 10, pw: 340 },
-    '12.75x14.75': { w: 12.75, h: 14.75, pw: 440 },
+    '12.75x14.75': { w: 12.75, h: 14.75, pw: 440, printW: 8, printH: 10 },
     '12x16': { w: 12, h: 16, pw: 400 },
     '16x20': { w: 16, h: 20, pw: 480 },
     '20x24': { w: 20, h: 24, pw: 540 },
@@ -122,8 +122,29 @@ window.Renderer = (function() {
 
     // Frame border width scales with preview
     const frameBorderW = Math.round(14 * scale);
-    const matPadding = Math.round(18 * scale);
     const panelGap = Math.round(10 * scale);
+
+    // Mat padding: if a target print size is specified, mat sizes to fit it.
+    // Otherwise fall back to the aesthetic default that scales with frame size.
+    const pxPerIn = previewWidth / fs.w;
+    let matPadding;
+    let matInchesW, matInchesH;
+    if (fs.printW && fs.printH) {
+      matInchesW = (fs.w - fs.printW) / 2;
+      matInchesH = (fs.h - fs.printH) / 2;
+      // Use the width axis to compute padding (square mat assumption for symmetric frames)
+      const totalPadPx = Math.round(matInchesW * pxPerIn);
+      matPadding = Math.max(0, totalPadPx - frameBorderW);
+    } else {
+      matPadding = Math.round(18 * scale);
+      const visibleMatIn = (frameBorderW + matPadding) / pxPerIn;
+      matInchesW = matInchesH = visibleMatIn;
+    }
+
+    // Derived print sheet dimensions (what gets printed inside the mat)
+    const printW = fs.printW || +(fs.w - 2 * matInchesW).toFixed(2);
+    const printH = fs.printH || +(fs.h - 2 * matInchesH).toFixed(2);
+    const fmt = n => (Math.round(n * 100) / 100).toString().replace(/\.?0+$/, '');
 
     container.innerHTML = '';
 
@@ -133,12 +154,20 @@ window.Renderer = (function() {
     );
     container.appendChild(title);
 
-    // Top dimension
+    // Top dimension \u2014 outer width
     const dimTop = el('div', {
       class: 'dim-label',
       style: `width: ${previewWidth}px`
-    }, `${fs.w} inches`);
+    }, `${fs.w} in`);
     container.appendChild(dimTop);
+
+    // Print dimension (top) \u2014 width of the printed sheet inside the mat
+    const printPxW = Math.round(printW * pxPerIn);
+    const printDimTop = el('div', {
+      class: 'dim-label dim-label--print',
+      style: `width: ${printPxW}px`
+    }, `${fmt(printW)} in print`);
+    container.appendChild(printDimTop);
 
     // Frame wrapper
     const frameWrap = el('div', { class: 'frame-wrap' });
@@ -188,11 +217,21 @@ window.Renderer = (function() {
     frame.appendChild(mat);
     frameWrap.appendChild(frame);
 
-    // Side dimension
-    const dimSide = el('div', { class: 'dim-side' }, `${fs.h} inches`);
+    // Side dimension — outer height
+    const dimSide = el('div', { class: 'dim-side' }, `${fs.h} in`);
     frameWrap.appendChild(dimSide);
 
+    // Print dimension (side) — height of the printed sheet inside the mat
+    const dimSidePrint = el('div', { class: 'dim-side dim-side--print' }, `${fmt(printH)} in print`);
+    frameWrap.appendChild(dimSidePrint);
+
     container.appendChild(frameWrap);
+
+    // Caption strip — full breakdown
+    const breakdown = el('div', { class: 'preview-breakdown' },
+      `Outer ${fs.w} × ${fs.h} in  ·  Mat ${fmt(matInchesW)} in${matInchesW !== matInchesH ? ` (${fmt(matInchesH)} in vertical)` : ''}  ·  Print sheet ${fmt(printW)} × ${fmt(printH)} in`
+    );
+    container.appendChild(breakdown);
 
     // Fire post-render callbacks (e.g. to reattach drag-drop listeners)
     for (const cb of postRenderCallbacks) {
