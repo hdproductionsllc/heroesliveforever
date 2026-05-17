@@ -144,7 +144,10 @@ window.Renderer = (function() {
     // Derived print sheet dimensions (what gets printed inside the mat)
     const printW = fs.printW || +(fs.w - 2 * matInchesW).toFixed(2);
     const printH = fs.printH || +(fs.h - 2 * matInchesH).toFixed(2);
-    const fmt = n => (Math.round(n * 100) / 100).toString().replace(/\.?0+$/, '');
+    const fmt = n => {
+      const s = (Math.round(n * 100) / 100).toString();
+      return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
+    };
 
     container.innerHTML = '';
 
