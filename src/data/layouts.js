@@ -177,6 +177,7 @@ const layouts = {
  */
 const frameSizes = {
   '8x10':  { width: 8,  height: 10, aspect: '4:5',  previewWidth: 340, layouts: ['3-panel', '3-panel-right'] },
+  '12.75x14.75': { width: 12.75, height: 14.75, aspect: '~6:7', previewWidth: 440, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'] },
   '12x16': { width: 12, height: 16, aspect: '3:4',  previewWidth: 400, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom'] },
   '16x20': { width: 16, height: 20, aspect: '4:5',  previewWidth: 480, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right'] },
   '20x24': { width: 20, height: 24, aspect: '5:6',  previewWidth: 540, layouts: ['3-panel', '3-panel-right', '3-panel-top', '3-panel-bottom', '3-panel-center', '4-panel', '4-panel-right', '4-panel-top'] },
