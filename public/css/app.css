@@ -621,14 +621,38 @@ textarea {
 
 .color-picker-row {
   display: grid;
-  grid-template-columns: 1fr 36px 52px;
-  gap: 8px;
+  grid-template-columns: 1fr 28px 72px 52px;
+  gap: 6px;
   align-items: center;
   padding: 5px 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 2px;
   transition: border-color 0.12s, background 0.12s;
+}
+
+.color-hex {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Source Sans 3', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 4px 6px;
+  border-radius: 2px;
+  text-align: center;
+  text-transform: uppercase;
+  width: 100%;
+  min-width: 0;
+  transition: border-color 0.12s;
+}
+.color-hex:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.color-hex.is-invalid {
+  border-color: var(--red);
 }
 .color-picker-row.is-active {
   border-color: var(--accent);

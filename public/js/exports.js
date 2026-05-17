@@ -133,10 +133,13 @@ window.Exports = (function() {
 
     showStatus('Generating spec sheet...', 'loading');
     try {
+      // Include palette overrides so the spec sheet reports the actual colors
+      // the user picked, not just the unmodified theme defaults.
+      const payload = { ...heroData, colorOverrides: Form.getColorOverrides() };
       const res = await fetch('/api/exports/spec-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(heroData)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 

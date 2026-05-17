@@ -8,6 +8,24 @@
 const puppeteer = require('puppeteer');
 const { frameSizes, printDimensions, layouts } = require('../data/layouts');
 const { calculateLayout } = require('./layoutEngine');
+const { resolveTheme } = require('./themeEngine');
+
+/**
+ * Extract the first usable hex code from a color string.
+ * Handles plain hex (`#abc123`), gradients with multiple stops,
+ * and named/rgb values (returns null in that case).
+ */
+function extractHex(value) {
+  if (!value || typeof value !== 'string') return null;
+  const m = value.match(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})/);
+  if (!m) return null;
+  let hex = m[0];
+  if (hex.length === 4) {
+    // expand #abc → #aabbcc
+    hex = '#' + hex.slice(1).split('').map(c => c + c).join('');
+  }
+  return hex.toUpperCase();
+}
 
 /**
  * Generate a dimension spec sheet PDF.
@@ -22,6 +40,21 @@ async function generateSpecSheet(heroData, outputPath) {
 
   const layout = calculateLayout(heroData.frameSize, heroData.layout);
   const layoutDef = layouts[heroData.layout];
+
+  // Resolve theme + apply any palette overrides the user picked so the spec
+  // sheet shows the actual mat/frame colors being printed/ordered.
+  const theme = resolveTheme({
+    category: heroData.category || 'sports',
+    subcategory: heroData.subcategory || '',
+    team: heroData.team || '',
+    colorDb: heroData.colorDb || ''
+  });
+  const overrides = heroData.colorOverrides || {};
+  const frameColorHex = extractHex(overrides.frameWood) || extractHex(theme.frame.border) || '—';
+  const matColorHex = extractHex(overrides.matBg) || extractHex(theme.mat.background) || '—';
+  const bioBgHex = extractHex(overrides.bioBg) || extractHex(theme.bio.background) || '—';
+  const bioNameHex = extractHex(overrides.bioName) || extractHex(theme.bio.nameColor) || '—';
+  const bioTextHex = extractHex(overrides.bioText) || extractHex(theme.bio.textColor) || '—';
 
   const { bleed, dpi: targetDpi } = printDimensions;
 
@@ -55,7 +88,8 @@ async function generateSpecSheet(heroData, outputPath) {
     openingWidth, openingHeight,
     printWidthIn, printHeightIn,
     widthPx, heightPx, actualDpi,
-    panels
+    panels,
+    frameColorHex, matColorHex, bioBgHex, bioNameHex, bioTextHex
   });
 
   const browser = await puppeteer.launch({
@@ -88,7 +122,8 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
     openingWidth, openingHeight,
     printWidthIn, printHeightIn,
     widthPx, heightPx, actualDpi,
-    panels
+    panels,
+    frameColorHex, matColorHex, bioBgHex, bioNameHex, bioTextHex
   } = dims;
   const isSleek = !!frame.sleek;
   const hasExplicitPrint = !!(frame.printW && frame.printH);
@@ -149,7 +184,16 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
   }
   .specs-table th { font-weight: 600; color: #444; }
   .specs-table .label { color: #666; width: 45%; }
-  .specs-table .value { font-weight: 500; }
+  .specs-table .value { font-weight: 500; font-family: 'Source Sans 3', monospace; letter-spacing: 0.3px; }
+  .color-chip {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1px solid #333;
+    vertical-align: middle;
+    margin-right: 6px;
+    border-radius: 2px;
+  }
   .panel-table { width: 100%; border-collapse: collapse; font-size: 10px; }
   .panel-table th, .panel-table td {
     text-align: left; padding: 2px 6px; border-bottom: 1px solid #eee;
@@ -250,6 +294,30 @@ function buildSpecHtml(heroData, frame, layoutDef, dims) {
       </div>
     </div>
   </div>
+
+  <h3>Color Specifications</h3>
+  <table class="specs-table" style="max-width: 480px;">
+    <tr>
+      <td class="label">Frame color</td>
+      <td class="value"><span class="color-chip" style="background:${frameColorHex === '—' ? '#888' : frameColorHex};"></span> ${frameColorHex}</td>
+    </tr>
+    <tr>
+      <td class="label">Mat color</td>
+      <td class="value"><span class="color-chip" style="background:${matColorHex === '—' ? '#888' : matColorHex};"></span> ${matColorHex}</td>
+    </tr>
+    <tr>
+      <td class="label">Bio panel background</td>
+      <td class="value"><span class="color-chip" style="background:${bioBgHex === '—' ? '#888' : bioBgHex};"></span> ${bioBgHex}</td>
+    </tr>
+    <tr>
+      <td class="label">Bio name color</td>
+      <td class="value"><span class="color-chip" style="background:${bioNameHex === '—' ? '#888' : bioNameHex};"></span> ${bioNameHex}</td>
+    </tr>
+    <tr>
+      <td class="label">Bio body text</td>
+      <td class="value"><span class="color-chip" style="background:${bioTextHex === '—' ? '#888' : bioTextHex};"></span> ${bioTextHex}</td>
+    </tr>
+  </table>
 
   <h3>Panel Positions (relative to mat opening)</h3>
   <table class="panel-table">

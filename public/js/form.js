@@ -497,19 +497,54 @@ window.Form = (function() {
       if (!overrideId) return;
 
       const swatch = row.querySelector('.color-swatch');
+      const hexInput = row.querySelector('.color-hex');
       const autoBtn = row.querySelector('.btn-auto');
 
-      // 'input' fires continuously during drag; 'change' fires on commit.
-      // We listen on 'input' so the preview updates live.
+      // Picker drag: live preview + sync hex input.
       swatch.addEventListener('input', () => {
         colorOverrides[overrideId] = swatch.value;
         row.classList.add('is-active');
+        if (hexInput) {
+          hexInput.value = swatch.value.toUpperCase();
+          hexInput.classList.remove('is-invalid');
+        }
         notifyChange();
       });
+
+      // Hex input: validate, sync to swatch, commit on valid value.
+      if (hexInput) {
+        hexInput.value = swatch.value.toUpperCase();
+        hexInput.addEventListener('input', () => {
+          let raw = hexInput.value.trim();
+          // Accept "abc123" without a leading hash
+          if (raw && !raw.startsWith('#')) raw = '#' + raw;
+          // Expand #rgb shorthand to #rrggbb
+          if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+            raw = '#' + raw.slice(1).split('').map(c => c + c).join('');
+          }
+          if (/^#[0-9a-fA-F]{6}$/.test(raw)) {
+            const normalized = raw.toUpperCase();
+            swatch.value = normalized.toLowerCase();
+            colorOverrides[overrideId] = normalized.toLowerCase();
+            row.classList.add('is-active');
+            hexInput.classList.remove('is-invalid');
+            notifyChange();
+          } else {
+            hexInput.classList.add('is-invalid');
+          }
+        });
+        // On blur, normalize display to #RRGGBB uppercase if valid.
+        hexInput.addEventListener('blur', () => {
+          if (!hexInput.classList.contains('is-invalid')) {
+            hexInput.value = swatch.value.toUpperCase();
+          }
+        });
+      }
 
       autoBtn.addEventListener('click', () => {
         delete colorOverrides[overrideId];
         row.classList.remove('is-active');
+        if (hexInput) hexInput.classList.remove('is-invalid');
         notifyChange();
       });
     });
@@ -523,13 +558,20 @@ window.Form = (function() {
     if (!theme) return;
     for (const [overrideId, path] of Object.entries(OVERRIDE_PATHS)) {
       const swatch = document.querySelector(`.color-swatch[data-override="${overrideId}"]`);
+      const hexInput = document.querySelector(`.color-hex[data-override="${overrideId}"]`);
       if (!swatch) continue;
       // If there's no active override, reflect the theme's current value.
       if (colorOverrides[overrideId] !== undefined) continue;
 
       const themeValue = path.reduce((obj, key) => obj && obj[key], theme);
       const hex = toHexColor(themeValue);
-      if (hex) swatch.value = hex;
+      if (hex) {
+        swatch.value = hex;
+        if (hexInput) {
+          hexInput.value = hex.toUpperCase();
+          hexInput.classList.remove('is-invalid');
+        }
+      }
     }
   }
 
@@ -574,7 +616,14 @@ window.Form = (function() {
       image: { ...(theme.image || {}) }
     };
 
-    if (colorOverrides.frameWood) result.frame.border = colorOverrides.frameWood;
+    if (colorOverrides.frameWood) {
+      // The renderer applies frame.border via CSS border-image, which expects
+      // a gradient or image — a bare hex value silently fails to paint. Wrap
+      // the solid color in a same-color gradient so the border-image pipeline
+      // accepts it and paints a clean solid border.
+      const c = colorOverrides.frameWood;
+      result.frame.border = `linear-gradient(145deg, ${c}, ${c})`;
+    }
     if (colorOverrides.matBg)     result.mat.background = colorOverrides.matBg;
     if (colorOverrides.bioBg)     result.bio.background = colorOverrides.bioBg;
     if (colorOverrides.bioName)   result.bio.nameColor = colorOverrides.bioName;
