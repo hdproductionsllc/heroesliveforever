@@ -610,6 +610,99 @@ textarea {
   gap: 24px;
 }
 
+/* ═══ RESPONSIVE LAYOUT (Mobile / Narrow Screens) ═══
+   Desktop is the primary target; this block makes the tool usable
+   on phones and tablets without redesigning. Stacks the preview
+   above the form, shrinks the header, and keeps the preview at a
+   readable size on small viewports. */
+@media (max-width: 880px) {
+  :root {
+    --sidebar-width: 100%;
+  }
+  #app-header {
+    height: 48px;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .brand {
+    font-size: 20px;
+    letter-spacing: 3px;
+  }
+  .subtitle {
+    display: none;
+  }
+  #workspace {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 48px);
+  }
+  /* Preview lands on top so you see your design first on mobile;
+     scroll down to edit. */
+  #preview-area {
+    order: 1;
+    padding: 18px 12px 24px;
+    min-height: 320px;
+    border-bottom: 2px solid var(--accent);
+  }
+  #preview-container {
+    gap: 14px;
+  }
+  #sidebar {
+    order: 2;
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    max-height: none;
+    overflow-y: visible;
+  }
+  #hero-form {
+    padding: 14px;
+  }
+  .form-section {
+    margin-bottom: 18px;
+  }
+  /* Bigger touch targets on the smaller fields */
+  .color-picker-row {
+    padding: 8px;
+    gap: 10px;
+  }
+  .color-swatch {
+    width: 32px;
+    height: 28px;
+  }
+  .color-hex {
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+  .btn-auto {
+    padding: 7px 6px;
+  }
+  .export-buttons {
+    flex-direction: column;
+  }
+  .export-buttons .btn-export {
+    width: 100%;
+  }
+  /* Hide the side dimension label rail on very small screens — it
+     overflows and isn't critical for review-only use. */
+  .dim-side,
+  .dim-side--print {
+    display: none;
+  }
+}
+
+/* Very narrow phones — squeeze the brand further */
+@media (max-width: 480px) {
+  .brand {
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+  .preview-title {
+    font-size: 10px;
+  }
+}
+
 /* ═══ PALETTE OVERRIDE (Color Pickers) ═══ */
 
 .color-picker-list {
@@ -621,8 +714,8 @@ textarea {
 
 .color-picker-row {
   display: grid;
-  grid-template-columns: 1fr 28px 72px 52px;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 30px 76px 48px;
+  gap: 8px;
   align-items: center;
   padding: 5px 8px;
   background: var(--bg-surface);
@@ -636,15 +729,16 @@ textarea {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: 'Source Sans 3', monospace;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  padding: 4px 6px;
+  padding: 4px 4px;
   border-radius: 2px;
   text-align: center;
   text-transform: uppercase;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   transition: border-color 0.12s;
 }
 .color-hex:focus {
@@ -678,14 +772,15 @@ textarea {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 36px;
-  height: 24px;
+  width: 28px;
+  height: 22px;
   border: 1px solid #2a2a2a;
   border-radius: 2px;
   background: transparent;
   padding: 0;
   cursor: pointer;
   transition: border-color 0.12s, transform 0.05s;
+  box-sizing: border-box;
 }
 .color-swatch:hover {
   border-color: var(--accent);
