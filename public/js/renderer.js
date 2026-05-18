@@ -372,11 +372,12 @@ window.Renderer = (function() {
 
     // Dynamic content scaling — adjust font sizes so bio text fills the panel
     // with balanced margins regardless of word count.
-    // Reference: ~110 words at 7.5px fills a 24x24 3-panel bio panel well.
+    // Capped at 1.20 (was 1.35) because larger scaling on short bios pushed
+    // content past the panel height and clipped the name at the top.
     const wordCount = (heroData.bio || '').split(/\s+/).filter(w => w).length;
     const idealWords = 110;
     const contentScale = wordCount > 0
-      ? Math.max(0.82, Math.min(1.35, Math.sqrt(idealWords / wordCount)))
+      ? Math.max(0.82, Math.min(1.20, Math.sqrt(idealWords / wordCount)))
       : 1;
 
     const panel = el('div', { class: 'panel', 'data-panel': panelId }, null, {
@@ -387,10 +388,13 @@ window.Renderer = (function() {
       background: bio.background,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'center',
+      // "safe center" centers content when it fits, falls back to flex-start
+      // when it would overflow — so the name is always visible at the top.
+      justifyContent: 'safe center',
       alignItems: 'center',
-      padding: `0 ${Math.round(14 * scale)}px`,
-      textAlign: 'center'
+      padding: `${Math.round(10 * scale)}px ${Math.round(14 * scale)}px`,
+      textAlign: 'center',
+      boxSizing: 'border-box'
     });
 
     // Name
@@ -401,7 +405,11 @@ window.Renderer = (function() {
         letterSpacing: Math.round(sizes.name.letterSpacing * scale) + 'px',
         color: bio.nameColor,
         fontWeight: typo.display.weight,
-        textTransform: 'uppercase'
+        textTransform: 'uppercase',
+        lineHeight: 1.05,
+        marginBottom: Math.round(3 * scale) + 'px',
+        maxWidth: '100%',
+        wordBreak: 'break-word'
       });
       panel.appendChild(name);
     }
