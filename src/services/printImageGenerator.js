@@ -47,6 +47,14 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
   const printWidthIn = frame.printW || (openingWidth + 2 * bleed);
   const printHeightIn = frame.printH || (openingHeight + 2 * bleed);
 
+  // Margin from sheet edge to the visible inner opening. For sleek frames this
+  // is the overlap the molding hides; for custom-cut sheets it's the trim
+  // bleed. Either way, the design must sit centered in the inner area and the
+  // margin must be filled with the mat color — otherwise the slipped-in print
+  // shows a visible band of wrong color along the molding edge.
+  const sheetMarginXIn = Math.max(0, (printWidthIn - openingWidth) / 2);
+  const sheetMarginYIn = Math.max(0, (printHeightIn - openingHeight) / 2);
+
   // Calculate pixel dimensions, capped at MAX_PIXELS
   const longestEdge = Math.max(printWidthIn, printHeightIn);
   const effectiveDpi = Math.min(targetDpi, MAX_PIXELS / longestEdge);
@@ -66,7 +74,7 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
   const html = embedImages(heroData, rendererHtml);
 
   // Build clean HTML for the print area only
-  const fullHtml = buildPrintHtml(html, printWidthIn, printHeightIn, bleed, matWidthIn);
+  const fullHtml = buildPrintHtml(html, printWidthIn, printHeightIn);
 
   // Puppeteer viewport in CSS pixels (96 DPI), scale factor gets us to print DPI
   const cssWidth = Math.round(printWidthIn * 96);
@@ -94,8 +102,18 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
     // get rasterized as fallback fonts.
     await page.evaluate(() => document.fonts.ready);
 
-    // Strip frame border and mat border, scale content to fill print area
-    await page.evaluate((pageW, pageH, bleedPx, matPaddingPx) => {
+    // Convert the rendered preview into a print sheet:
+    //   1. Measure the mat WHILE the frame border is intact — the mat's
+    //      `width: 100%` resolves against the frame's content box, which is
+    //      exactly the inner opening (frame outer minus molding minus visible
+    //      mat). Strip the border later and the mat balloons to the full
+    //      outer frame size.
+    //   2. Scale that mat to fit the print sheet's inner area (Math.min so
+    //      nothing crops), centered.
+    //   3. Paint the surrounding margin in the mat's own color so the strip
+    //      hidden behind the molding (sleek) or trimmed off (matted) reads as
+    //      a seamless extension of the design.
+    await page.evaluate((pageW, pageH, marginX, marginY) => {
       // Remove preview-only elements
       document.querySelectorAll('.dim-side, .dim-label, .preview-title, .divider-handle').forEach(el => el.remove());
 
@@ -105,43 +123,41 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
       const frameDiv = frameWrap.children[0];
       if (!frameDiv) return;
 
-      // Strip frame border
+      const matDiv = frameDiv.children[0];
+      if (!matDiv) return;
+
+      // Capture the mat color and its inner-opening dimensions BEFORE any
+      // mutation. Order matters: stripping the frame border first would expand
+      // the frame's content box and make the mat re-resolve to the outer frame
+      // size instead of the inner opening.
+      // Prefer the inline shorthand (preserves gradients); fall back to the
+      // computed solid color for any theme that only sets background-color.
+      const matBg = matDiv.style.background || window.getComputedStyle(matDiv).backgroundColor || '#2c2c2c';
+      const rect = matDiv.getBoundingClientRect();
+      const matW = rect.width;
+      const matH = rect.height;
+
+      // Lock mat dimensions in absolute pixels so neither the upcoming frame
+      // resize nor any layout reflow can change them.
+      matDiv.style.width = `${matW}px`;
+      matDiv.style.height = `${matH}px`;
+
+      // Now safe to strip the frame's preview-only chrome.
       frameDiv.style.border = 'none';
       frameDiv.style.borderImage = 'none';
       frameDiv.style.boxShadow = 'none';
       frameDiv.style.padding = '0';
 
-      // Find the mat div (first child of frame)
-      const matDiv = frameDiv.children[0];
-      if (!matDiv) return;
+      // Fit the design into the print sheet's inner area (the part that's
+      // visible through the molding, or the trim area for cut-down sheets).
+      const innerW = pageW - 2 * marginX;
+      const innerH = pageH - 2 * marginY;
+      const scale = Math.min(innerW / matW, innerH / matH);
 
-      // Strip mat border — we want just the opening content
-      matDiv.style.border = 'none';
-      matDiv.style.padding = '0';
-      matDiv.style.boxSizing = 'border-box';
-
-      // Measure the mat content area
-      const rect = matDiv.getBoundingClientRect();
-      const matW = rect.width;
-      const matH = rect.height;
-
-      // Lock mat to its measured pixel size BEFORE resizing the frame below.
-      // Without this, the mat's inline `width/height: 100%` re-resolves against
-      // the enlarged frame, ballooning past the intended size before transform
-      // is applied — producing a massively over-scaled, clipped output.
-      matDiv.style.width = `${matW}px`;
-      matDiv.style.height = `${matH}px`;
-
-      // Scale to fill print area (minus bleed which is the mat background)
-      const contentAreaW = pageW - 2 * bleedPx;
-      const contentAreaH = pageH - 2 * bleedPx;
-      const scale = Math.max(contentAreaW / matW, contentAreaH / matH);
-
-      // Position: offset by bleed, then center
       const scaledW = matW * scale;
       const scaledH = matH * scale;
-      const offsetX = bleedPx + (contentAreaW - scaledW) / 2;
-      const offsetY = bleedPx + (contentAreaH - scaledH) / 2;
+      const offsetX = marginX + (innerW - scaledW) / 2;
+      const offsetY = marginY + (innerH - scaledH) / 2;
 
       matDiv.style.transformOrigin = 'top left';
       matDiv.style.transform = `scale(${scale})`;
@@ -149,17 +165,20 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
       matDiv.style.left = `${offsetX}px`;
       matDiv.style.top = `${offsetY}px`;
 
-      // Hide frame div, just show mat content
+      // Frame becomes the print sheet, painted with mat color so the margin
+      // around the scaled design reads as continuous mat.
       frameDiv.style.position = 'relative';
       frameDiv.style.width = `${pageW}px`;
       frameDiv.style.height = `${pageH}px`;
       frameDiv.style.overflow = 'hidden';
-      frameDiv.style.background = 'none';
+      frameDiv.style.background = matBg;
 
       frameWrap.style.width = `${pageW}px`;
       frameWrap.style.height = `${pageH}px`;
       frameWrap.style.overflow = 'hidden';
-    }, cssWidth, cssHeight, Math.round(bleed * 96), Math.round(matWidthIn * 96));
+
+      document.body.style.background = matBg;
+    }, cssWidth, cssHeight, Math.round(sheetMarginXIn * 96), Math.round(sheetMarginYIn * 96));
 
     // Take screenshot as raw PNG, then encode to JPG with sharp.
     // JPG at quality 92 is visually indistinguishable from lossless and
@@ -251,9 +270,10 @@ function embedImages(heroData, html) {
 
 /**
  * Build HTML document for Puppeteer print rendering.
- * Body = print area with mat background color filling the bleed zone.
+ * Body fills the print sheet; the in-page script paints it with the actual
+ * mat color once the renderer is mounted.
  */
-function buildPrintHtml(contentHtml, printWidthIn, printHeightIn, bleedIn, matPaddingIn) {
+function buildPrintHtml(contentHtml, printWidthIn, printHeightIn) {
   const cssWidth = Math.round(printWidthIn * 96);
   const cssHeight = Math.round(printHeightIn * 96);
 
@@ -270,7 +290,6 @@ function buildPrintHtml(contentHtml, printWidthIn, printHeightIn, bleedIn, matPa
     width: ${cssWidth}px;
     height: ${cssHeight}px;
     overflow: hidden;
-    background: #2c2c2c; /* mat background for bleed zone */
   }
 
   /* Hide preview-only elements */
