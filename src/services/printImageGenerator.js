@@ -122,15 +122,24 @@ async function generatePrintImage(heroData, rendererHtml, outputPath) {
 
       // Measure the mat content area
       const rect = matDiv.getBoundingClientRect();
+      const matW = rect.width;
+      const matH = rect.height;
+
+      // Lock mat to its measured pixel size BEFORE resizing the frame below.
+      // Without this, the mat's inline `width/height: 100%` re-resolves against
+      // the enlarged frame, ballooning past the intended size before transform
+      // is applied — producing a massively over-scaled, clipped output.
+      matDiv.style.width = `${matW}px`;
+      matDiv.style.height = `${matH}px`;
 
       // Scale to fill print area (minus bleed which is the mat background)
       const contentAreaW = pageW - 2 * bleedPx;
       const contentAreaH = pageH - 2 * bleedPx;
-      const scale = Math.max(contentAreaW / rect.width, contentAreaH / rect.height);
+      const scale = Math.max(contentAreaW / matW, contentAreaH / matH);
 
       // Position: offset by bleed, then center
-      const scaledW = rect.width * scale;
-      const scaledH = rect.height * scale;
+      const scaledW = matW * scale;
+      const scaledH = matH * scale;
       const offsetX = bleedPx + (contentAreaW - scaledW) / 2;
       const offsetY = bleedPx + (contentAreaH - scaledH) / 2;
 
